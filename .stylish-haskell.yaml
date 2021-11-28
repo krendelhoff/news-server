@@ -1,0 +1,17 @@
+steps:
+  - imports:
+      long_list_align: multiline
+      align: group
+      pad_module_names: true
+      separate_lists: false
+  - language_pragmas:
+      style: vertical
+      align: true
+      remove_redundant: true
+      language_prefix: LANGUAGE
+  - simple_align:
+      cases: adjacent
+      top_level_patterns: adjacent
+      records: adjacent
+      multi_way_if: adjacent
+  - trailing_whitespace: {}
