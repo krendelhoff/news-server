@@ -26,6 +26,7 @@ library
       API
       Migration
       Migration.Initial
+      Types.UUID
   other-modules:
       Paths_server
   hs-source-dirs:
@@ -38,6 +39,7 @@ library
       aeson
     , base
     , bytestring
+    , conduit
     , cryptonite
     , deriving-aeson
     , dhall
@@ -51,6 +53,7 @@ library
     , lens
     , monad-logger
     , mtl
+    , path-pieces
     , persistent
     , persistent-migration
     , persistent-postgresql
@@ -80,6 +83,7 @@ executable server
       aeson
     , base
     , bytestring
+    , conduit
     , cryptonite
     , deriving-aeson
     , dhall
@@ -93,6 +97,7 @@ executable server
     , lens
     , monad-logger
     , mtl
+    , path-pieces
     , persistent
     , persistent-migration
     , persistent-postgresql

@@ -28,11 +28,14 @@ dependencies:
 - filepath
 - raw-strings-qq
 - file-embed
+- time
 - warp
 - wai
 - wai-extra
 - http-types
 - http-api-data
+- path-pieces
+- conduit
 - time
 - dhall
 - hashable
