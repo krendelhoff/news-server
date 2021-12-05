@@ -24,6 +24,8 @@ source-repository head
 library
   exposed-modules:
       API
+      Migration
+      Migration.Initial
   other-modules:
       Paths_server
   hs-source-dirs:
@@ -36,18 +38,28 @@ library
       aeson
     , base
     , bytestring
+    , cryptonite
     , deriving-aeson
     , dhall
     , esqueleto
+    , file-embed
+    , filepath
     , fmt
+    , hashable
+    , http-api-data
     , http-types
     , lens
+    , monad-logger
     , mtl
     , persistent
+    , persistent-migration
+    , persistent-postgresql
+    , raw-strings-qq
     , text
     , text-show
     , time
     , universum
+    , uuid
     , wai
     , wai-extra
     , warp
@@ -68,19 +80,29 @@ executable server
       aeson
     , base
     , bytestring
+    , cryptonite
     , deriving-aeson
     , dhall
     , esqueleto
+    , file-embed
+    , filepath
     , fmt
+    , hashable
+    , http-api-data
     , http-types
     , lens
+    , monad-logger
     , mtl
     , persistent
+    , persistent-migration
+    , persistent-postgresql
+    , raw-strings-qq
     , server
     , text
     , text-show
     , time
     , universum
+    , uuid
     , wai
     , wai-extra
     , warp

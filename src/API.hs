@@ -23,10 +23,9 @@ import           TextShow
 import           Universum
 import Network.Wai.Handler.Warp
 
-data GET (a :: Type)
-data POST (a :: Type)
-data PUT (a :: Type)
-data DELETE (a :: Type)
+data Verb (m :: StdMethod) (a :: Type)
+
+type Get a = Verb 'GET a
 
 data a :<|> b = a :<|> b
 infixr 8 :<|>
@@ -36,10 +35,10 @@ infixr 9 :>
 
 data Capture (a :: Type)
 
-type MyAPI = "date" :> GET Day :<|> "time" :> Capture TimeZone
+--type MyAPI = "date" :> Get Day :<|> "time" :> Capture TimeZone
 
 type family Server (a :: Type) :: Type
-type instance Server (GET a) = IO a
+type instance Server (Get a) = IO a
 type instance Server (a :<|> b) = Server a :<|> Server b
 type instance Server ((s :: Symbol) :> r) = Server r
 type instance Server (Capture a :> r) = a -> Server r
@@ -52,7 +51,7 @@ type Request = [Text]
 class HasServer layout where
   route :: Server layout -> Request -> Maybe (IO Response)
 
-instance TextShow a => HasServer (GET a) where
+instance TextShow a => HasServer (Get a) where
   route :: IO a -> Request -> Maybe (IO Response)
   route handler _ = return do
     handler <&> responseLBS status200 [] . encodeUtf8 . showt
@@ -75,8 +74,8 @@ instance (Read a, HasServer r) => HasServer (Capture a :> r) where
     route @r (handler a) xs
   route _ _ = Nothing
 
-serve :: forall layout. HasServer layout => Server layout -> IO ()
-serve s = run 3000 $ \req respond -> let path = fst . decodePath $ rawPathInfo req
-                                       in case route @layout s path of
-                                           Nothing -> respond API.error
-                                           Just m  -> m >>= respond
+serve :: forall layout. HasServer layout => Server layout -> Application
+serve s req respond = let path = fst . decodePath $ rawPathInfo req
+                        in case route @layout s path of
+                            Nothing -> respond API.error
+                            Just m  -> m >>= respond
