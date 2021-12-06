@@ -9,6 +9,9 @@ copyright:           "2021 Savely Krendelhoff"
 extra-source-files:
 - README.org
 
+data-files:
+- migrations/*
+
 # Metadata used when publishing your package
 # synopsis:            Short description of your package
 # category:            Web
@@ -18,6 +21,7 @@ description:         Advanced server app.
 dependencies:
 - base
 - universum
+- exceptions
 - mtl
 - text
 - text-show
@@ -32,21 +36,20 @@ dependencies:
 - warp
 - wai
 - wai-extra
+- hasql
+- hasql-th
+- hasql-pool
+- hasql-dynamic-statements
+- hasql-transaction
+- hasql-migration
+- uuid
 - http-types
 - http-api-data
 - path-pieces
-- conduit
+- cryptonite
 - time
 - dhall
-- hashable
 - fmt
-- esqueleto
-- persistent
-- persistent-postgresql
-- persistent-migration
-- uuid
-- monad-logger
-- cryptonite
 
 default-extensions:
 - NoImplicitPrelude

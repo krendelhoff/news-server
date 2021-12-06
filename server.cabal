@@ -16,6 +16,8 @@ license:        BSD3
 build-type:     Simple
 extra-source-files:
     README.org
+data-files:
+    migrations/01-initial.sql
 
 source-repository head
   type: git
@@ -24,9 +26,9 @@ source-repository head
 library
   exposed-modules:
       API
+      DB
       Migration
-      Migration.Initial
-      Types.UUID
+      Types.DB
   other-modules:
       Paths_server
   hs-source-dirs:
@@ -39,24 +41,24 @@ library
       aeson
     , base
     , bytestring
-    , conduit
     , cryptonite
     , deriving-aeson
     , dhall
-    , esqueleto
+    , exceptions
     , file-embed
     , filepath
     , fmt
-    , hashable
+    , hasql
+    , hasql-dynamic-statements
+    , hasql-migration
+    , hasql-pool
+    , hasql-th
+    , hasql-transaction
     , http-api-data
     , http-types
     , lens
-    , monad-logger
     , mtl
     , path-pieces
-    , persistent
-    , persistent-migration
-    , persistent-postgresql
     , raw-strings-qq
     , text
     , text-show
@@ -83,24 +85,24 @@ executable server
       aeson
     , base
     , bytestring
-    , conduit
     , cryptonite
     , deriving-aeson
     , dhall
-    , esqueleto
+    , exceptions
     , file-embed
     , filepath
     , fmt
-    , hashable
+    , hasql
+    , hasql-dynamic-statements
+    , hasql-migration
+    , hasql-pool
+    , hasql-th
+    , hasql-transaction
     , http-api-data
     , http-types
     , lens
-    , monad-logger
     , mtl
     , path-pieces
-    , persistent
-    , persistent-migration
-    , persistent-postgresql
     , raw-strings-qq
     , server
     , text

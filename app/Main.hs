@@ -14,56 +14,26 @@
 {-# LANGUAGE UndecidableInstances       #-}
 module Main where
 
-import Control.Monad.Logger
-import Data.Time                           (UTCTime)
-import Data.UUID                           (UUID)
-import Database.Esqueleto.Experimental     hiding (runMigration)
-import Database.Persist.Migration          as Migration
-    ( checkMigration
-    , defaultSettings
-    )
-import Database.Persist.Migration.Postgres (runMigration)
-import Database.Persist.Postgresql         (runSqlConn, withPostgresqlConn)
-import Database.Persist.TH
-
+import Hasql.Connection
 import Network.HTTP.Types.Status
 import Network.Wai
-import Network.Wai.Handler.Warp  as Warp
-
 import Universum
 
+import qualified Network.Wai.Handler.Warp as Warp
 
 import API
-import Migration  (migration)
-import Types.UUID
+import DB        (withConn)
+import Migration (applyMigrations)
+import Types.DB (ConnectionString)
 
-mkPersist sqlSettings [persistLowerCase|
-  User sql=users
-    Id UUID sqltype=uuid default=uuid_generate_v4()
-    name Text
-    surname Text
-    login Text
-    avatar ByteString Maybe
-    passwordHash Text
-    createdAt UTCTime
-    privileged Bool
-    deriving Show Eq
-|]
+settings :: Warp.Settings
+settings = Warp.setBeforeMainLoop (putStrLn @Text "Server started...")
+             Warp.defaultSettings
 
-settings :: Settings
-settings = setBeforeMainLoop (putStrLn @Text "Server started...") Warp.defaultSettings
-
-connStr :: ByteString
+-- parse from dhall
+-- settings function
+connStr :: ConnectionString
 connStr = "host=localhost port=5435 user=savely dbname=db password="
 
-putUsers :: MonadIO m => SqlPersistT m ()
-putUsers = do
-  users <- select $ from $ table @User
-  liftIO $ traverse_ (putStrLn . userName . entityVal) users
-
 main :: IO ()
-main = do
-  runStderrLoggingT $
-    withPostgresqlConn connStr \backend -> lift do
-      runSqlConn (runMigration Migration.defaultSettings migration) backend
-      runSqlConn putUsers backend
+main = withConn connStr applyMigrations

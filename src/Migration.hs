@@ -1,26 +1,24 @@
-{-# LANGUAGE DataKinds   #-}
-{-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE BlockArguments   #-}
+{-# LANGUAGE TypeApplications #-}
 module Migration where
 
-import Database.Persist.Migration
-import Database.Persist.PersistValue
+import Control.Exception
+import Hasql.Connection
+import Hasql.Migration
+import Hasql.Session
+import Hasql.Transaction.Sessions
+import Paths_server               (getDataDir)
 import Universum
 
-import Migration.Initial
+import Types.DB
 
--- TODO write some TH to reduce boilerplate
-
-migration :: Migration
-migration = [ 0 ~> 1 := [ addUUIDExtension
-                        , createUsers
-                        , createAuth
-                        , createAuthors
-                        , createCategories
-                        , createCategoriesContent
-                        , createTags
-                        , createNews
-                        , createPostPhotos
-                        , createPostTags
-                        , createComments
-                        ]
-            ]
+applyMigrations :: Connection -> IO ()
+applyMigrations conn = do
+  dataDir <- getDataDir
+  let migrationsDir = dataDir <> "/migrations"
+  loadMigrationsFromDirectory migrationsDir <&> (MigrationInitialization :)
+    >>= traverse ( flip run conn
+                 . transaction ReadCommitted Write
+                 . runMigration ) >>= traverse_ \case
+    Left queryError -> throwM queryError
+    Right result -> maybe pass throwM result
