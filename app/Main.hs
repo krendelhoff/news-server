@@ -20,6 +20,7 @@ import Network.HTTP.Types.Status
 import Network.Wai
 import Universum
 
+import qualified Hasql.Pool               as Pool
 import qualified Network.Wai.Handler.Warp as Warp
 
 import DB

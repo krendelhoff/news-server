@@ -16,7 +16,7 @@ import Types.DB
 
 
 mkConnStr :: DbConfig -> ConnectionString
-mkConnStr conf = encodeUtf8 $ "hostname=" <> conf^.hostName <> " "
+mkConnStr conf = encodeUtf8 $ "host=" <> conf^.hostName <> " "
                            <> "port=" <> conf^.port <> " "
                            <> "user=" <> conf^.user <> " "
                            <> "dbname=" <> conf^.dbname <> " "
