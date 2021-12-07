@@ -3,22 +3,22 @@
 module Migration where
 
 import Control.Exception
-import Hasql.Connection
 import Hasql.Migration
-import Hasql.Session
+import Hasql.Pool
+import Hasql.Transaction
 import Hasql.Transaction.Sessions
 import Paths_server               (getDataDir)
-import Universum
+import Universum hiding (use)
 
 import Types.DB
 
-applyMigrations :: Connection -> IO ()
-applyMigrations conn = do
+applyMigrations :: Pool -> IO ()
+applyMigrations pool = do
   dataDir <- getDataDir
   let migrationsDir = dataDir <> "/migrations"
   loadMigrationsFromDirectory migrationsDir <&> (MigrationInitialization :)
-    >>= traverse ( flip run conn
-                 . transaction ReadCommitted Write
+    >>= traverse ( use pool
+                 . transaction Serializable Write
                  . runMigration ) >>= traverse_ \case
-    Left queryError -> throwM queryError
+    Left usageError -> throwM usageError
     Right result -> maybe pass throwM result
