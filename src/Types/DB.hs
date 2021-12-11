@@ -34,7 +34,7 @@ newtype Port = Port Word16 deriving stock (Eq, Show, Ord)
 
 data DbConfig = DbConfig { _hostName :: Text
                          , _port     :: Text
-                         , _user     :: Text -- FIXME SPECIALIZE
+                         , _user     :: Text
                          , _dbname   :: Text
                          , _password :: Text
                          } deriving (Generic, Eq, Show)

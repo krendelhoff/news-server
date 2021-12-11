@@ -1,9 +1,11 @@
 {-# LANGUAGE BlockArguments             #-}
 {-# LANGUAGE DataKinds                  #-}
+{-# LANGUAGE DeriveGeneric              #-}
 {-# LANGUAGE DerivingStrategies         #-}
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GADTs                      #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE ImplicitParams             #-}
 {-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE QuasiQuotes                #-}
 {-# LANGUAGE StandaloneDeriving         #-}
@@ -18,7 +20,7 @@ import Dhall
 import Hasql.Connection          hiding (settings)
 import Network.HTTP.Types.Status
 import Network.Wai
-import Universum
+import Universum                 hiding (toText)
 
 import qualified Hasql.Pool               as Pool
 import qualified Network.Wai.Handler.Warp as Warp
@@ -28,6 +30,12 @@ import Migration         (applyMigrations)
 import Router
 import Types.DB
 import Types.Environment
+import Types.TH
+import Data.Aeson
+
+newTextType "Title"
+
+newEnumType "EnumType" ["EnumTypeOne", "EnumTypeTwo", "EnumTypeThree"]
 
 serverSettings :: Warp.Settings
 serverSettings = Warp.setBeforeMainLoop
@@ -36,8 +44,8 @@ serverSettings = Warp.setBeforeMainLoop
 
 type MyAPI = "boba" :> "biba" :> Get Int
 
-app :: Environment -> Server MyAPI
-app = runReaderT (return 5)
+app :: Server MyAPI
+app = return 5
 
 main :: IO ()
 main = do -- TODO Cont
@@ -45,5 +53,6 @@ main = do -- TODO Cont
   let poolSettings = (10, 5, mkConnStr conf)
   withPool poolSettings \pool -> do
     applyMigrations pool
-    let env = Environment pool conf
-    Warp.runSettings serverSettings $ serve @MyAPI $ app env
+    putStrLn $ Universum.maybe "" encode (decode "\"one\"" :: Maybe EnumType)
+    let ?env = Environment pool conf
+     in Warp.runSettings serverSettings $ serve @MyAPI app

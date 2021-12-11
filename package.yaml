@@ -27,6 +27,7 @@ dependencies:
 - text-show
 - bytestring
 - aeson
+- template-haskell
 - deriving-aeson
 - lens
 - filepath

@@ -30,6 +30,9 @@ library
       Router
       Types.DB
       Types.Environment
+      Types.Router
+      Types.TH
+      Types.TH.Classes
   other-modules:
       Paths_server
   hs-source-dirs:
@@ -61,6 +64,7 @@ library
     , mtl
     , path-pieces
     , raw-strings-qq
+    , template-haskell
     , text
     , text-show
     , time
@@ -106,6 +110,7 @@ executable server
     , path-pieces
     , raw-strings-qq
     , server
+    , template-haskell
     , text
     , text-show
     , time

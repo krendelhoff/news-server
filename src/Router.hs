@@ -1,4 +1,5 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE ImplicitParams      #-}
 {-# LANGUAGE BlockArguments      #-}
 {-# LANGUAGE DataKinds           #-}
 {-# LANGUAGE DerivingStrategies  #-}
@@ -24,6 +25,9 @@ import TextShow
 import Universum                hiding (error)
 import Web.HttpApiData
 
+import Types.Environment
+import Types.Router
+
 import qualified Data.Text as T
 
 data Verb (m :: StdMethod) (a :: Type)
@@ -38,8 +42,6 @@ infixr 9 :>
 
 data Capture (a :: Type)
 
---type MyAPI = "date" :> Get Day :<|> "time" :> Capture TimeZone
-
 type family Server (a :: Type) :: Type
 type instance Server (Get a) = Handler a
 type instance Server (a :<|> b) = Server a :<|> Server b
@@ -48,21 +50,6 @@ type instance Server (Capture a :> r) = a -> Server r
 
 error :: Response
 error = responseLBS status404 [] "404!"
-
-data ServerError = U | E deriving (Eq, Show)
-
-instance Semigroup ServerError where
-  U <> U = U
-  _ <> _ = E
-
-instance Monoid ServerError where
-  mempty = U
-
-newtype Handler a = Handler { runHandler :: ExceptT ServerError IO a }
-  deriving (Functor, Applicative, Monad, MonadError ServerError, Alternative)
-  via (ExceptT ServerError IO)
-
-type Request = [Text]
 
 class HasServer layout where
   route :: Server layout -> Request -> Handler Response
@@ -89,9 +76,10 @@ instance (FromHttpApiData a, HasServer r) => HasServer (Capture a :> r) where
     Right a  -> route @r (handler a) xs
   route _ _ = throwError E
 
-serve :: forall layout. HasServer layout => Server layout -> Application
+serve :: forall layout. (?env :: Environment, HasServer layout) => Server layout
+                                                                -> Application
 serve s req respond = do
   let path = fst . decodePath $ rawPathInfo req
-  runExceptT (runHandler (route @layout s path))
+  runExceptT (runReaderT (runHandler (route @layout s path)) ?env)
     >>= either (const $ respond error) respond
 
