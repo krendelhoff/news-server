@@ -1,1 +1,5 @@
-# server
+* The News Server
+** Goals
+ - Asynchronous logger
+ - Servant-like type level routing implementation
+ - Using TH in favor of Type Driven Development

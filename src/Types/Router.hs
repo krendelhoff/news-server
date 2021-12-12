@@ -31,7 +31,8 @@ newtype Handler a = Handler
   { runHandler :: ReaderT Environment (ExceptT ServerError IO) a }
   deriving ( Functor, Applicative, Monad
            , MonadError ServerError, Alternative
-           , MonadReader Environment )
+           , MonadReader Environment, MonadThrow, MonadCatch
+           , MonadIO )
   via (ReaderT Environment (ExceptT ServerError IO))
 
 data RequestInfo = RequestInfo { _path     :: [Text]

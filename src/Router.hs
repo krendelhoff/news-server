@@ -19,23 +19,19 @@ module Router where
 import Control.Applicative
 import Control.Monad.Except
 import Data.Aeson
-import Data.Time
+import Data.List            (lookup)
 import GHC.TypeLits
 import Network.HTTP.Types
-import Network.Wai              hiding (Request)
-import Network.Wai.Handler.Warp
-import TextShow
-import Universum                hiding (error, natVal)
+import Network.Wai
+import Universum            hiding (error, natVal)
 import Web.HttpApiData
+import DB (run)
 
 import Types.Environment
 import Types.Router
 
 import qualified Data.ByteString.Lazy as BL (toStrict)
 import qualified Data.Text            as T
-import Data.List (lookup)
-
-
 
 error :: Response
 error = responseLBS status404 [] "404!"
@@ -46,14 +42,18 @@ class HasServer layout where
 instance ( KnownMethod m, KnownNat code, ToJSON a
          ) => HasServer (Verb m code a) where
   route :: Handler a -> RequestInfo -> Handler Response
-  route handler _ = handler <&>
-    responseLBS (mkStatus (fromInteger (natVal (Proxy @code))) "") [] . encode
+  route handler _ = do
+    -- AUTH Here
+    run $ undefined
+    -- Method routhing here
+    handler <&>
+      responseLBS (mkStatus (fromInteger (natVal (Proxy @code))) "") [] . encode
 
 instance ( FromJSON a, HasServer r ) => HasServer (ReqBody a :> r) where
   route :: (a -> Server r) -> RequestInfo -> Handler Response
   route f req@(view body -> bodyStr) = case decodeStrict bodyStr of
     Nothing -> throwError CriticalError
-    Just a -> route @r (f a) req
+    Just a  -> route @r (f a) req
 
 instance (KnownSymbol s, FromHttpApiData a, HasServer r) =>
     HasServer (QueryParam s a :> r) where
@@ -62,7 +62,7 @@ instance (KnownSymbol s, FromHttpApiData a, HasServer r) =>
       case lookup (encodeUtf8 (symbolVal (Proxy @s))) params of
         Just (Just x) -> case parseHeader x of -- because of we need byteString instead of text!
           Left err -> throwError CriticalError
-          Right a -> route @r (f $ Just a) req
+          Right a  -> route @r (f $ Just a) req
         _ -> route @r (f Nothing) req
 
 
