@@ -25,14 +25,18 @@ source-repository head
 
 library
   exposed-modules:
+      DataModel
       DB
       Migration
       Router
+      Server.Auth
+      Server.Users
       Types.DB
       Types.Environment
       Types.Router
       Types.TH
       Types.TH.Classes
+      Types.Users
   other-modules:
       Paths_server
   hs-source-dirs:

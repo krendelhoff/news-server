@@ -14,8 +14,10 @@
 {-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE TypeOperators              #-}
 {-# LANGUAGE UndecidableInstances       #-}
+{-# LANGUAGE ViewPatterns #-}
 module Main where
 
+import Data.Aeson
 import Dhall
 import Hasql.Connection          hiding (settings)
 import Network.HTTP.Types.Status
@@ -28,14 +30,7 @@ import qualified Network.Wai.Handler.Warp as Warp
 import DB
 import Migration         (applyMigrations)
 import Router
-import Types.DB
-import Types.Environment
-import Types.TH
-import Data.Aeson
-
-newTextType "Title"
-
-newEnumType "EnumType" ["EnumTypeOne", "EnumTypeTwo", "EnumTypeThree"]
+import DataModel
 
 serverSettings :: Warp.Settings
 serverSettings = Warp.setBeforeMainLoop
@@ -53,6 +48,5 @@ main = do -- TODO Cont
   let poolSettings = (10, 5, mkConnStr conf)
   withPool poolSettings \pool -> do
     applyMigrations pool
-    putStrLn $ Universum.maybe "" encode (decode "\"one\"" :: Maybe EnumType)
     let ?env = Environment pool conf
      in Warp.runSettings serverSettings $ serve @MyAPI app
