@@ -49,6 +49,7 @@ dependencies:
 - path-pieces
 - cryptonite
 - time
+- word8
 - dhall
 - fmt
 

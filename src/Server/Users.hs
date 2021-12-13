@@ -6,7 +6,8 @@ import Universum hiding (get)
 
 import qualified Types.Users as Users
 
-import DataModel
+import Types.Router
+import Router
 
 type API = CreateAPI :<|> GetAPI
 

@@ -1,13 +1,16 @@
-{-# LANGUAGE AllowAmbiguousTypes #-}
-{-# LANGUAGE DataKinds           #-}
-{-# LANGUAGE DeriveAnyClass      #-}
-{-# LANGUAGE DerivingVia         #-}
-{-# LANGUAGE GADTs               #-}
-{-# LANGUAGE KindSignatures      #-}
-{-# LANGUAGE PolyKinds           #-}
-{-# LANGUAGE TemplateHaskell     #-}
-{-# LANGUAGE TypeFamilies        #-}
-{-# LANGUAGE TypeOperators       #-}
+{-# LANGUAGE AllowAmbiguousTypes        #-}
+{-# LANGUAGE DataKinds                  #-}
+{-# LANGUAGE DeriveAnyClass             #-}
+{-# LANGUAGE DeriveGeneric              #-}
+{-# LANGUAGE DerivingVia                #-}
+{-# LANGUAGE GADTs                      #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE KindSignatures             #-}
+{-# LANGUAGE PolyKinds                  #-}
+{-# LANGUAGE TemplateHaskell            #-}
+{-# LANGUAGE TypeFamilies               #-}
+{-# LANGUAGE TypeOperators              #-}
+{-# OPTIONS_GHC -Wno-deriving-defaults  #-}
 module Types.Router where
 
 import Control.Lens
@@ -16,6 +19,7 @@ import GHC.TypeLits
 import Network.HTTP.Types
 import Universum
 
+import Data.Aeson
 import Types.Environment
 
 data ServerError = WrongPath | CriticalError deriving (Eq, Show, Exception)
@@ -40,8 +44,13 @@ data RequestInfo = RequestInfo { _path     :: [Text]
                                , _queryStr :: Query
                                , _headers  :: RequestHeaders
                                , _body     :: ByteString
+                               , _auth     :: Bool
                                } deriving (Eq, Show)
 makeLenses ''RequestInfo
+
+newtype Message = Message { message :: Text }
+  deriving (Eq, Show, Generic, ToJSON)
+  deriving newtype (IsString)
 
 data SMethod (m :: StdMethod) where
   SPut    :: SMethod 'PUT
@@ -49,6 +58,7 @@ data SMethod (m :: StdMethod) where
   SGet    :: SMethod 'GET
   SDelete :: SMethod 'DELETE
 
+-- makeKnown "StdMethod"
 class KnownMethod (m :: StdMethod) where
   methodVal :: StdMethod
 
@@ -79,15 +89,11 @@ data (a :: k) :> (b :: Type)
 infixr 9 :>
 
 data Capture (a :: Type)
+
 data QueryParam (s :: Symbol) (a :: Type)
+
 data QueryParams (s :: Symbol) (a :: Type)
+
 data ReqBody (a :: Type)
 
-type family Server (a :: Type) :: Type
-type instance Server (Verb m c a) = Handler a
-type instance Server (a :<|> b) = Server a :<|> Server b
-type instance Server ((s :: Symbol) :> r) = Server r
-type instance Server (Capture a :> r) = a -> Server r
-type instance Server (QueryParam s a :> r) = Maybe a -> Server r
-type instance Server (QueryParams s a :> r) = Vector a -> Server r
-type instance Server (ReqBody a :> r) = a -> Server r
+data RequireAdmin

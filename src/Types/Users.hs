@@ -12,7 +12,8 @@ import Data.Aeson
 import Universum
 import Deriving.Aeson.Stock
 
-import DataModel
+import Types.TH
+import Types.Auth
 
 newTextType "Name"
 newTextType "Surname"
@@ -20,8 +21,6 @@ newTextType "Login"
 newByteaType "Picture"
 newUTCTimeType "CreationTime"
 newTextType "Password"
-newBoolType "IsAdmin"
-newTextType "Token"
 
 data CreateForm = CreateForm
   { createFormName         :: Name

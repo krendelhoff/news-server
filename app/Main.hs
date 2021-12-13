@@ -14,7 +14,6 @@
 {-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE TypeOperators              #-}
 {-# LANGUAGE UndecidableInstances       #-}
-{-# LANGUAGE ViewPatterns #-}
 module Main where
 
 import Data.Aeson
@@ -28,9 +27,11 @@ import qualified Hasql.Pool               as Pool
 import qualified Network.Wai.Handler.Warp as Warp
 
 import DB
-import Migration         (applyMigrations)
+import Migration    (applyMigrations)
 import Router
-import DataModel
+import Types.DB
+import Types.Environment
+import Types.Router
 
 serverSettings :: Warp.Settings
 serverSettings = Warp.setBeforeMainLoop
