@@ -8,13 +8,14 @@ module Types.Auth where
 import Universum
 
 import Types.TH
+import Types.Users
 
-newBoolType "IsAdmin"
-newTextType "Token"
+import qualified Types.Users as Users (ID)
+
 newBoolType "IsExpired"
-newUTCTimeType "CurrentTime"
 
 data TokenInfo = TokenInfo { tokenInfoToken   :: Token
                            , tokenInfoAdmin   :: IsAdmin
                            , tokenInfoExpired :: IsExpired
+                           , tokenInfoId      :: Users.ID
                            } deriving (Eq, Show)

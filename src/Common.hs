@@ -4,7 +4,7 @@ import Universum
 
 import qualified Data.Time as Time
 
-import Types.Auth
+import Types.Common
 import Types.TH
 
 getCurrentTime :: MonadIO m => m CurrentTime

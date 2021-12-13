@@ -33,7 +33,9 @@ import Database.Auth
 
 import Types.Environment
 import Types.Router
+import Types.Common
 import Types.Auth
+import Types.Users
 import Types.TH
 import Common
 
@@ -61,16 +63,21 @@ class HasServer layout where
   type Server (layout :: Type) :: Type
   route :: Server layout -> RequestInfo -> Handler Response
 
+extractToken :: RequestHeaders -> Maybe Token
+extractToken hMap = case lookup "Authorization" hMap of
+  Just (((fromText <$>) . decodeUtf8' <$>)
+       . B.break isSpace -> ("Bearer", Right token)) -> Just token
+  _ -> Nothing
+
 instance HasServer r => HasServer (RequireAdmin :> r) where
   type Server (RequireAdmin :> r) = Server r
   route :: Server r -> RequestInfo -> Handler Response
-  route handler req@(view headers -> hMap) = case lookup "Authorization" hMap of
-    Just (((fromText <$>) . decodeUtf8' <$>)
-          . B.break isSpace -> ("Bearer", Right token)) -> do
-      getCurrentTime >>= run . getTokenInfo token >>= \case
-        Just (TokenInfo _ (toBool -> True) (toBool -> True)) ->
+  route handler req@(view headers -> hMap) = case extractToken hMap of
+    Just token -> do
+       getCurrentTime >>= run . getTokenInfo token >>= \case
+        Just (TokenInfo _ (toBool -> True) (toBool -> True) _) ->
           error "respond401 Token expired"
-        Just (TokenInfo _ (toBool -> True) (toBool -> False)) ->
+        Just (TokenInfo _ (toBool -> True) (toBool -> False) _) ->
           route @r handler (req & auth .~ True)
         _ -> respond404 message404
     _ -> respond404 message404 -- FIXME maybe Bad Request better here
@@ -148,3 +155,5 @@ serve s req respond = do
                           CriticalError -> respond500 message500
                     )) ?env)
     >>= either (const $ throwM CriticalError) respond
+    -- FIXME think to do with user - need to read it from request and then
+    -- have capability to address to him

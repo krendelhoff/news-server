@@ -13,12 +13,14 @@ import Universum
 import Deriving.Aeson.Stock
 
 import Types.TH
-import Types.Auth
 
+newUUIDType "ID"
 newTextType "Name"
+newTextType "Token"
 newTextType "Surname"
 newTextType "Login"
 newByteaType "Picture"
+newBoolType "IsAdmin"
 newUTCTimeType "CreationTime"
 newTextType "Password"
 
@@ -39,7 +41,8 @@ newtype CreatePayload = CreatePayload
     deriving (FromJSON, ToJSON) via Prefixed "createPayload" CreatePayload
 
 data Payload = Payload
-  { payloadName         :: Name
+  { payloadId           :: ID
+  , payloadName         :: Name
   , payloadSurname      :: Surname
   , payloadLogin        :: Login
   , payloadAvatar       :: Picture

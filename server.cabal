@@ -34,6 +34,7 @@ library
       Server.Auth
       Server.Users
       Types.Auth
+      Types.Common
       Types.DB
       Types.Environment
       Types.Router
