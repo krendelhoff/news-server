@@ -10,7 +10,6 @@
 {-# LANGUAGE TemplateHaskell            #-}
 {-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE TypeOperators              #-}
-{-# OPTIONS_GHC -Wno-deriving-defaults  #-}
 module Types.Router where
 
 import Control.Lens
@@ -22,22 +21,48 @@ import Universum
 import Data.Aeson
 import Types.Environment
 
-data ServerError = WrongPath | CriticalError deriving (Eq, Show, Exception)
+data ServerError = WrongPath | ServerError Status Message
+  deriving (Eq, Show, Exception)
 
+mkError :: Status -> Message -> ServerError
+mkError = ServerError
+
+err404 :: ServerError
+err404 = ServerError status404 "Not found"
+
+err500 :: ServerError
+err500 = ServerError status500 "Internal Error"
+
+err401 :: ServerError
+err401 = ServerError status401 "Unauthorized"
+
+err401TokenExpired :: ServerError
+err401TokenExpired = ServerError status401 "Token expired"
+
+err401TokenInvalid :: ServerError
+err401TokenInvalid = ServerError status401 "Token invalid"
+
+-- dummy one, need only mempty
 instance Semigroup ServerError where
-  WrongPath <> WrongPath = WrongPath
-  _ <> _                 = CriticalError
+  _ <> _                 = WrongPath
+
+data TokenError = NoToken | BadToken
 
 instance Monoid ServerError where
   mempty = WrongPath
 
+newtype Message = Message { message :: Text }
+  deriving stock (Eq, Show, Generic)
+  deriving anyclass (ToJSON)
+  deriving newtype (IsString, Semigroup, Monoid)
+
 newtype Handler a = Handler
   { runHandler :: ReaderT Environment (ExceptT ServerError IO) a }
-  deriving ( Functor, Applicative, Monad
-           , MonadError ServerError, Alternative
-           , MonadReader Environment, MonadThrow, MonadCatch
-           , MonadIO )
-  via (ReaderT Environment (ExceptT ServerError IO))
+  deriving newtype ( Functor, Applicative, Monad
+                   , MonadError ServerError, Alternative
+                   , MonadReader Environment, MonadThrow
+                   , MonadCatch, MonadIO
+                   )
 
 data RequestInfo = RequestInfo { _path     :: [Text]
                                , _method   :: StdMethod
@@ -48,10 +73,6 @@ data RequestInfo = RequestInfo { _path     :: [Text]
                                } deriving (Eq, Show)
 makeLenses ''RequestInfo
 
-newtype Message = Message { message :: Text }
-  deriving (Eq, Show, Generic, ToJSON)
-  deriving newtype (IsString)
-
 data SMethod (m :: StdMethod) where
   SPut    :: SMethod 'PUT
   SPost   :: SMethod 'POST
@@ -61,7 +82,7 @@ data SMethod (m :: StdMethod) where
 -- makeKnown "StdMethod"
 class KnownMethod (m :: StdMethod) where
   methodVal :: StdMethod
-
+-- use danil's hkd for update methods
 --TODO TH CREATION
 instance KnownMethod 'PUT where
   methodVal = PUT
@@ -88,7 +109,7 @@ infixr 8 :<|>
 data (a :: k) :> (b :: Type)
 infixr 9 :>
 
-data Capture (a :: Type)
+data Capture (id :: Symbol) (a :: Type)
 
 data QueryParam (s :: Symbol) (a :: Type)
 

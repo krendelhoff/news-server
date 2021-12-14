@@ -1,16 +1,16 @@
+{-# LANGUAGE DataKinds                  #-}
+{-# LANGUAGE DeriveGeneric              #-}
 {-# LANGUAGE DerivingStrategies         #-}
 {-# LANGUAGE DerivingVia                #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE StrictData                 #-}
 {-# LANGUAGE TemplateHaskell            #-}
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE UndecidableInstances       #-}
 module Types.Users where
 
 import Data.Aeson
-import Universum
 import Deriving.Aeson.Stock
+import Universum
 
 import Types.TH
 
@@ -25,13 +25,13 @@ newUTCTimeType "CreationTime"
 newTextType "Password"
 
 data CreateForm = CreateForm
-  { createFormName         :: Name
-  , createFormSurname      :: Surname
-  , createFormLogin        :: Login
-  , createFormAvatar       :: Picture
-  , createFormPassword     :: Password
-  , createFormCreatedAt    :: CreationTime
-  , createFormPrivigeded   :: IsAdmin
+  { createFormName       :: Name
+  , createFormSurname    :: Surname
+  , createFormLogin      :: Login
+  , createFormAvatar     :: Picture
+  , createFormPassword   :: Password
+  , createFormCreatedAt  :: CreationTime
+  , createFormPrivigeded :: IsAdmin
   } deriving stock (Eq, Show, Generic)
     deriving (FromJSON, ToJSON) via Prefixed "createForm" CreateForm
 
@@ -41,13 +41,13 @@ newtype CreatePayload = CreatePayload
     deriving (FromJSON, ToJSON) via Prefixed "createPayload" CreatePayload
 
 data Payload = Payload
-  { payloadId           :: ID
-  , payloadName         :: Name
-  , payloadSurname      :: Surname
-  , payloadLogin        :: Login
-  , payloadAvatar       :: Picture
-  , payloadPassword     :: Password
-  , payloadCreatedAt    :: CreationTime
-  , payloadPrivigeded   :: IsAdmin
+  { payloadId         :: ID
+  , payloadName       :: Name
+  , payloadSurname    :: Surname
+  , payloadLogin      :: Login
+  , payloadAvatar     :: Picture
+  , payloadPassword   :: Password
+  , payloadCreatedAt  :: CreationTime
+  , payloadPrivigeded :: IsAdmin
   } deriving stock (Eq, Show, Generic)
     deriving (FromJSON, ToJSON) via Prefixed "payload" Payload

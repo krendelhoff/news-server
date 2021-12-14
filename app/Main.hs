@@ -17,6 +17,7 @@
 module Main where
 
 import Data.Aeson
+import Data.UUID                 (nil)
 import Dhall
 import Hasql.Connection          hiding (settings)
 import Network.HTTP.Types.Status
@@ -27,7 +28,7 @@ import qualified Hasql.Pool               as Pool
 import qualified Network.Wai.Handler.Warp as Warp
 
 import DB
-import Migration    (applyMigrations)
+import Migration         (applyMigrations)
 import Router
 import Types.DB
 import Types.Environment
@@ -44,10 +45,10 @@ app :: Server MyAPI
 app = return 5
 
 main :: IO ()
-main = do -- TODO Cont
+main = do
   conf <- readFile "config.dhall" >>= input dbConfigDecoder
   let poolSettings = (10, 5, mkConnStr conf)
   withPool poolSettings \pool -> do
     applyMigrations pool
-    let ?env = Environment pool conf
+    let ?env = Environment pool conf nil
      in Warp.runSettings serverSettings $ serve @MyAPI app

@@ -29,75 +29,75 @@ import Network.Wai
 import Universum            hiding (natVal)
 import Web.HttpApiData
 
+import Common
 import Database.Auth
-
+import Types.Auth
+import Types.Common
 import Types.Environment
 import Types.Router
-import Types.Common
-import Types.Auth
-import Types.Users
 import Types.TH
-import Common
+import Types.Users
 
 import qualified Data.ByteString      as B
 import qualified Data.ByteString.Lazy as BL (toStrict)
 import qualified Data.Text            as T
 
-respond404 :: Message -> Handler Response
-respond404 = return . responseLBS status404 [] . encode
-
--- FIXME hardcode
-message404 :: Message
-message404 = "Not found!"
-
-message500 :: Message
-message500 = "Critical Internal Error!"
-
--- NOTE: hardcoding cause library already has good messages in statuses
-respond500 :: Message -> Handler Response
-respond500 = return . responseLBS status500 [] . encode
-
 -- type instance Server (QueryParams s a :> r) = Vector a -> Server r
+
 
 class HasServer layout where
   type Server (layout :: Type) :: Type
   route :: Server layout -> RequestInfo -> Handler Response
 
-extractToken :: RequestHeaders -> Maybe Token
+extractToken :: RequestHeaders -> Either TokenError Token
 extractToken hMap = case lookup "Authorization" hMap of
+  Nothing -> Left NoToken
   Just (((fromText <$>) . decodeUtf8' <$>)
-       . B.break isSpace -> ("Bearer", Right token)) -> Just token
-  _ -> Nothing
+       . B.break isSpace -> ("Bearer", Right token)) -> Right token
+  _ -> Left BadToken
 
 instance HasServer r => HasServer (RequireAdmin :> r) where
   type Server (RequireAdmin :> r) = Server r
   route :: Server r -> RequestInfo -> Handler Response
-  route handler req@(view headers -> hMap) = case extractToken hMap of
-    Just token -> do
-       getCurrentTime >>= run . getTokenInfo token >>= \case
-        Just (TokenInfo _ (toBool -> True) (toBool -> True) _) ->
-          error "respond401 Token expired"
-        Just (TokenInfo _ (toBool -> True) (toBool -> False) _) ->
-          route @r handler (req & auth .~ True)
-        _ -> respond404 message404
-    _ -> respond404 message404 -- FIXME maybe Bad Request better here
+  route handler req = route @r handler (req & auth .~ True)
 
 instance ( KnownMethod m, KnownNat code, ToJSON a
          ) => HasServer (Verb m code a) where
   type Server (Verb m code a) = Handler a
   route :: Handler a -> RequestInfo -> Handler Response
-  route handler _ = do
-    -- AUTH Here
-    run $ undefined
-    -- Method routhing here
-    handler <&>
-      responseLBS (mkStatus (fromInteger (natVal (Proxy @code))) "") [] . encode
+  route _ (view method -> m) | m /= methodVal @m = throwError WrongPath
+  route handler req@(view headers -> hMap) | req^.auth =
+    case extractToken hMap of
+      Right token -> do
+        getCurrentTime >>= run . getTokenInfo token >>= \case
+          Just (TokenInfo _ (toBool -> True) (toBool -> True) _) ->
+            throwError err401TokenExpired
+          Just (TokenInfo user (toBool -> True) (toBool -> False) _) ->
+            local (set userId user) handler <&>
+              responseLBS (mkStatus (fromInteger
+                (natVal (Proxy @code))) "Success") [] . encode
+          _ -> throwError err404
+      _ -> throwError err404
+  route handler req@(view headers -> hMap) =
+    case extractToken hMap of
+      Left NoToken -> throwError err401
+      Left BadToken -> throwError err401TokenInvalid
+      Right token -> do
+        getCurrentTime >>= run . getTokenInfo token >>= \case
+          Just (TokenInfo _ _ (toBool -> True) _) ->
+            throwError err401TokenExpired
+          Just (TokenInfo user _ (toBool -> False) _) ->
+            local (set userId user) handler <&>
+              responseLBS (mkStatus (fromInteger
+                (natVal (Proxy @code))) "Success") [] . encode
+          _ -> throwError err404
+
 
 instance ( FromJSON a, HasServer r ) => HasServer (ReqBody a :> r) where
   type Server (ReqBody a :> r) = a -> Server r
   route :: (a -> Server r) -> RequestInfo -> Handler Response
   route f req@(view body -> bodyStr) = case decodeStrict bodyStr of
-    Nothing -> throwError CriticalError
+    Nothing -> throwError $ mkError status400 "Can't parse request body"
     Just a  -> route @r (f a) req
 
 instance (KnownSymbol s, FromHttpApiData a, HasServer r) =>
@@ -106,8 +106,11 @@ instance (KnownSymbol s, FromHttpApiData a, HasServer r) =>
   route :: (Maybe a -> Server r) -> RequestInfo -> Handler Response
   route f req@(view queryStr -> params) =
     case lookup (encodeUtf8 (symbolVal (Proxy @s))) params of
-      Just (Just x) -> case parseHeader x of -- because of we need byteString instead of text!
-        Left err -> throwError CriticalError
+      Just (Just x) -> case parseHeader x of
+  -- because of we need byteString instead of text!
+        Left err -> throwError $ mkError status400 $
+            "Can't parse " <> fromString (symbolVal $ Proxy @s)
+                           <> " query parameter"
         Right a  -> route @r (f $ Just a) req
       _ -> route @r (f Nothing) req
 
@@ -123,37 +126,39 @@ instance (KnownSymbol s, HasServer r) => HasServer ((s :: Symbol) :> r) where
   route :: Server r -> RequestInfo -> Handler Response
   route h req@(view path -> (x:xs)) | symbolVal (Proxy @s) == T.unpack x =
                                       route @r h (req & path .~ xs)
-  route _ _ = throwError CriticalError
+  route _ _ = throwError WrongPath
 
-instance (FromHttpApiData a, HasServer r) => HasServer (Capture a :> r) where
-  type Server (Capture a :> r) = a -> Server r
+instance ( FromHttpApiData a, HasServer r
+         , KnownSymbol id
+         ) => HasServer (Capture id a :> r) where
+  type Server (Capture id a :> r) = a -> Server r
   route :: (a -> Server r) -> RequestInfo -> Handler Response
   route handler req@(view path -> (x:xs)) = case parseUrlPiece x of
-    Left err -> throwError WrongPath
+    Left err -> throwError $
+      mkError status400 $ "Can't parse capture "
+                       <> fromString (symbolVal $ Proxy @id)
     Right a  -> route @r (handler a) (req & path .~ xs)
-  route _ _ = throwError CriticalError
+  route _ _ = throwError WrongPath
+
+toResponse :: ServerError -> Response
+toResponse WrongPath          = toResponse err404
+toResponse (ServerError st m) = responseLBS st [] (encode m)
 
 serve :: forall layout. (?env :: Environment, HasServer layout) => Server layout
                                                                 -> Application
 serve s req respond = do
-  bodyStr <- BL.toStrict <$> strictRequestBody req -- FIXME bad desicion
-  m <- case parseMethod (requestMethod req) of
-    Left err -> throwM CriticalError -- FIXME NOT EXCEPTION BUT BAD REQUEST USE CALLCC
-    Right m  -> return m
-  let reqInfo = RequestInfo { _path = pathInfo req
-                            , _method = m
-                            , _queryStr = queryString req
-                            , _headers = requestHeaders req
-                            , _body = bodyStr
-                            , _auth = False
-                            }
-  runExceptT
-    (runReaderT
-       (runHandler (do route @layout s reqInfo
-                       `catchError` \case
-                          WrongPath     -> respond404 message404
-                          CriticalError -> respond500 message500
-                    )) ?env)
-    >>= either (const $ throwM CriticalError) respond
-    -- FIXME think to do with user - need to read it from request and then
-    -- have capability to address to him
+  bodyStr <- BL.toStrict <$> strictRequestBody req
+  case parseMethod (requestMethod req) of
+    Left err -> respond $
+      toResponse (mkError status400
+                    "Invalid method: GET, POST, PUT and DELETE allowed")
+    Right m  -> do
+      let reqInfo = RequestInfo { _path = pathInfo req
+                                , _method = m
+                                , _queryStr = queryString req
+                                , _headers = requestHeaders req
+                                , _body = bodyStr
+                                , _auth = False
+                                }
+      runExceptT (runReaderT (runHandler do route @layout s reqInfo) ?env)
+      >>= either (respond . toResponse) respond
