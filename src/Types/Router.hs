@@ -36,20 +36,13 @@ err500 = ServerError status500 "Internal Error"
 err401 :: ServerError
 err401 = ServerError status401 "Unauthorized"
 
-err401TokenExpired :: ServerError
-err401TokenExpired = ServerError status401 "Token expired"
+err403TokenExpired :: ServerError
+err403TokenExpired = ServerError status401 "Token expired"
 
-err401TokenInvalid :: ServerError
-err401TokenInvalid = ServerError status401 "Token invalid"
-
--- dummy one, need only mempty
-instance Semigroup ServerError where
-  _ <> _                 = WrongPath
+err403TokenInvalid :: ServerError
+err403TokenInvalid = ServerError status401 "Token invalid"
 
 data TokenError = NoToken | BadToken
-
-instance Monoid ServerError where
-  mempty = WrongPath
 
 newtype Message = Message { message :: Text }
   deriving stock (Eq, Show, Generic)
@@ -59,10 +52,8 @@ newtype Message = Message { message :: Text }
 newtype Handler a = Handler
   { runHandler :: ReaderT Environment (ExceptT ServerError IO) a }
   deriving newtype ( Functor, Applicative, Monad
-                   , MonadError ServerError, Alternative
-                   , MonadReader Environment, MonadThrow
-                   , MonadCatch, MonadIO
-                   )
+                   , MonadError ServerError, MonadReader Environment
+                   , MonadThrow, MonadCatch, MonadIO )
 
 data RequestInfo = RequestInfo { _path     :: [Text]
                                , _method   :: StdMethod
