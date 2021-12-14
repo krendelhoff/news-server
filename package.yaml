@@ -55,8 +55,6 @@ dependencies:
 
 default-extensions:
 - NoImplicitPrelude
-- LambdaCase
-- OverloadedStrings
 
 library:
   source-dirs: src

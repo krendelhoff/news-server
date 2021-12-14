@@ -8,6 +8,7 @@
 {-# LANGUAGE KindSignatures             #-}
 {-# LANGUAGE PolyKinds                  #-}
 {-# LANGUAGE TemplateHaskell            #-}
+{-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE TypeOperators              #-}
 module Types.Router where
@@ -55,12 +56,24 @@ newtype Handler a = Handler
                    , MonadError ServerError, MonadReader Environment
                    , MonadThrow, MonadCatch, MonadIO )
 
+data AuthLevel = NoAuth | RequireUser | RequireAdmin deriving (Eq, Show)
+
+instance Semigroup AuthLevel where
+  NoAuth <> x                = x
+  x <> NoAuth                = x
+  RequireAdmin <> _          = RequireAdmin
+  _ <> RequireAdmin          = RequireAdmin
+  RequireUser <> RequireUser = RequireUser
+
+instance Monoid AuthLevel where
+  mempty = NoAuth
+
 data RequestInfo = RequestInfo { _path     :: [Text]
                                , _method   :: StdMethod
                                , _queryStr :: Query
                                , _headers  :: RequestHeaders
                                , _body     :: ByteString
-                               , _auth     :: Bool
+                               , _auth     :: AuthLevel
                                } deriving (Eq, Show)
 makeLenses ''RequestInfo
 
@@ -107,5 +120,3 @@ data QueryParam (s :: Symbol) (a :: Type)
 data QueryParams (s :: Symbol) (a :: Type)
 
 data ReqBody (a :: Type)
-
-data RequireAdmin

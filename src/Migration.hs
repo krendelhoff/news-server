@@ -1,5 +1,7 @@
-{-# LANGUAGE BlockArguments   #-}
-{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE BlockArguments    #-}
+{-# LANGUAGE LambdaCase        #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TypeApplications  #-}
 module Migration where
 
 import Control.Exception
@@ -8,7 +10,7 @@ import Hasql.Pool
 import Hasql.Transaction
 import Hasql.Transaction.Sessions
 import Paths_server               (getDataDir)
-import Universum hiding (use)
+import Universum                  hiding (use)
 
 import Types.DB
 
@@ -21,4 +23,4 @@ applyMigrations pool = do
                  . transaction Serializable Write
                  . runMigration ) >>= traverse_ \case
     Left usageError -> throwM usageError
-    Right result -> maybe pass throwM result
+    Right result    -> maybe pass throwM result

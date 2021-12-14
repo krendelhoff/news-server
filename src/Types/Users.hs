@@ -23,6 +23,7 @@ newByteaType "Picture"
 newBoolType "IsAdmin"
 newUTCTimeType "CreationTime"
 newTextType "Password"
+newUTCTimeType "ExpirationDate"
 
 data CreateForm = CreateForm
   { createFormName       :: Name
@@ -35,10 +36,12 @@ data CreateForm = CreateForm
   } deriving stock (Eq, Show, Generic)
     deriving (FromJSON, ToJSON) via Prefixed "createForm" CreateForm
 
-newtype CreatePayload = CreatePayload
-  { createPayloadToken :: Token
+data TokenPayload = TokenPayload
+  { tokenPayloadToken   :: Token
+  , tokenPayloadExpires :: ExpirationDate
   } deriving (Eq, Show, Generic)
-    deriving (FromJSON, ToJSON) via Prefixed "createPayload" CreatePayload
+    deriving (FromJSON, ToJSON) via Prefixed "tokenPayload" TokenPayload
+-- TODO TH FOR THIS, too verbose and boilerplate
 
 data Payload = Payload
   { payloadId         :: ID

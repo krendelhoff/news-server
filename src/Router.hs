@@ -8,6 +8,8 @@
 {-# LANGUAGE ImplicitParams      #-}
 {-# LANGUAGE InstanceSigs        #-}
 {-# LANGUAGE KindSignatures      #-}
+{-# LANGUAGE LambdaCase          #-}
+{-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE PolyKinds           #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications    #-}
@@ -17,6 +19,7 @@
 module Router where
 
 import Control.Applicative
+import Control.Lens         ((<>~))
 import Control.Monad.Cont
 import Control.Monad.Except
 import DB                   (run)
@@ -59,15 +62,28 @@ extractToken hMap = case lookup "Authorization" hMap of
 instance HasServer r => HasServer (RequireAdmin :> r) where
   type Server (RequireAdmin :> r) = Server r
   route :: Server r -> RequestInfo -> Maybe (Handler Response)
-  route handler req = route @r handler (req & auth .~ True)
+  route handler req = route @r handler (req & auth <>~ RequireAdmin)
+
+instance HasServer r => HasServer (RequireUser :> r) where
+  type Server (RequireUser :> r) = Server r
+  route :: Server r -> RequestInfo -> Maybe (Handler Response)
+  route handler req = route @r handler (req & auth <>~ RequireUser)
+
+instance (HasServer r, FromJSON a) => HasServer (ReqBody a :> r) where
+  type Server (ReqBody a :> r) = a -> Server r
+  route :: (a -> Server r) -> RequestInfo -> Maybe (Handler Response)
+  route f req@(view body -> bodyStr) = case decodeStrict bodyStr of
+    Nothing -> Just $ throwError $
+      mkError status400 "Request body format violation"
+    Just a  -> route @r (f a) req
 
 instance ( KnownMethod m, KnownNat code, ToJSON a
          ) => HasServer (Verb m code a) where
   type Server (Verb m code a) = Handler a
   route :: Handler a -> RequestInfo -> Maybe (Handler Response)
   route _ (view method -> m) | m /= methodVal @m = Nothing
-  route handler req@(view headers -> hMap) | req^.auth =
-    case extractToken hMap of
+  route handler req@(view auth -> RequireAdmin) =
+    case extractToken $ req^.headers of
       Right token -> do
         Just $ getCurrentTime >>= run . getTokenInfo token >>= \case
           Just (TokenInfo _ (toBool -> True) (toBool -> True) _) ->
@@ -78,8 +94,8 @@ instance ( KnownMethod m, KnownNat code, ToJSON a
                        (natVal (Proxy @code))) "Success") [] . encode
           _ -> throwError err404
       _ -> Nothing
-  route handler req@(view headers -> hMap) =
-    case extractToken hMap of
+  route handler req@(view auth -> RequireUser) =
+    case extractToken $ req^.headers of
       Left NoToken -> Just $ throwError err401
       Left BadToken -> Just $ throwError err403TokenInvalid
       Right token -> do
@@ -91,14 +107,10 @@ instance ( KnownMethod m, KnownNat code, ToJSON a
                      responseLBS (mkStatus (fromInteger
                        (natVal (Proxy @code))) "Success") [] . encode
           _ -> throwError err401
+  route handler _ =
+    Just $ handler <&> responseLBS (mkStatus (fromInteger
+       (natVal (Proxy @code))) "Success") [] . encode
 
-
-instance ( FromJSON a, HasServer r ) => HasServer (ReqBody a :> r) where
-  type Server (ReqBody a :> r) = a -> Server r
-  route :: (a -> Server r) -> RequestInfo -> Maybe (Handler Response)
-  route f req@(view body -> bodyStr) = case decodeStrict bodyStr of
-    Nothing -> Just $ throwError $ mkError status400 "Can't parse request body"
-    Just a  -> route @r (f a) req
 
 instance (KnownSymbol s, FromHttpApiData a, HasServer r) =>
     HasServer (QueryParam s a :> r) where
@@ -158,7 +170,7 @@ serve s req respond = do
                                 , _queryStr = queryString req
                                 , _headers = requestHeaders req
                                 , _body = bodyStr
-                                , _auth = False
+                                , _auth = NoAuth
                                 }
       case route @layout s reqInfo of
         Nothing -> respond $ toResponse err404

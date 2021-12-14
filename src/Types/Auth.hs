@@ -1,4 +1,7 @@
+{-# LANGUAGE DataKinds                  #-}
+{-# LANGUAGE DeriveGeneric              #-}
 {-# LANGUAGE DerivingStrategies         #-}
+{-# LANGUAGE DerivingVia                #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE StrictData                 #-}
 {-# LANGUAGE TemplateHaskell            #-}
@@ -12,6 +15,9 @@ import Types.Users
 
 import qualified Types.Users as Users (ID)
 
+import Data.Aeson
+import Deriving.Aeson.Stock
+
 newBoolType "IsExpired"
 
 data TokenInfo = TokenInfo { tokenInfoToken   :: Token
@@ -19,3 +25,9 @@ data TokenInfo = TokenInfo { tokenInfoToken   :: Token
                            , tokenInfoExpired :: IsExpired
                            , tokenInfoId      :: Users.ID
                            } deriving (Eq, Show)
+
+data LoginForm = LoginForm
+  { loginFormLogin    :: Login
+  , loginFormPassword :: Password
+  } deriving stock (Eq, Show, Generic) -- TODO TH FOR THIS, too verbose and boilerplate
+    deriving (FromJSON) via Prefixed "loginForm" LoginForm

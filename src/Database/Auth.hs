@@ -1,5 +1,5 @@
-{-# LANGUAGE QuasiQuotes  #-}
 {-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE QuasiQuotes  #-}
 module Database.Auth where
 
 import Hasql.TH

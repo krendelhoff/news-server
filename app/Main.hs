@@ -1,19 +1,7 @@
-{-# LANGUAGE BlockArguments             #-}
-{-# LANGUAGE DataKinds                  #-}
-{-# LANGUAGE DeriveGeneric              #-}
-{-# LANGUAGE DerivingStrategies         #-}
-{-# LANGUAGE FlexibleInstances          #-}
-{-# LANGUAGE GADTs                      #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE ImplicitParams             #-}
-{-# LANGUAGE MultiParamTypeClasses      #-}
-{-# LANGUAGE QuasiQuotes                #-}
-{-# LANGUAGE StandaloneDeriving         #-}
-{-# LANGUAGE TemplateHaskell            #-}
-{-# LANGUAGE TypeApplications           #-}
-{-# LANGUAGE TypeFamilies               #-}
-{-# LANGUAGE TypeOperators              #-}
-{-# LANGUAGE UndecidableInstances       #-}
+{-# LANGUAGE BlockArguments    #-}
+{-# LANGUAGE ImplicitParams    #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TypeApplications  #-}
 module Main where
 
 import Data.Aeson
@@ -27,6 +15,7 @@ import Universum                 hiding (toText)
 import qualified Hasql.Pool               as Pool
 import qualified Network.Wai.Handler.Warp as Warp
 
+import API
 import DB
 import Migration         (applyMigrations)
 import Router
@@ -35,15 +24,16 @@ import Types.Environment
 import Types.Router
 import Types.TH
 
+import qualified Server.Auth  as Auth
+import qualified Server.Users as Users
+
 serverSettings :: Warp.Settings
 serverSettings = Warp.setBeforeMainLoop
                    (putStrLn @Text "Server initialized at localhost:5435...")
                    Warp.defaultSettings
 
-type MyAPI = "boba" :> "biba" :> Get Int
-
-app :: Server MyAPI
-app = return 5
+app :: Server API
+app = server
 
 main :: IO ()
 main = do
@@ -52,4 +42,4 @@ main = do
   withPool poolSettings \pool -> do
     applyMigrations pool
     let ?env = Environment pool conf (fromUUID nil)
-     in Warp.runSettings serverSettings $ serve @MyAPI app
+     in Warp.runSettings serverSettings $ serve @API app
