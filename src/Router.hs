@@ -72,7 +72,7 @@ instance ( KnownMethod m, KnownNat code, ToJSON a
         getCurrentTime >>= run . getTokenInfo token >>= \case
           Just (TokenInfo _ (toBool -> True) (toBool -> True) _) ->
             throwError err401TokenExpired
-          Just (TokenInfo user (toBool -> True) (toBool -> False) _) ->
+          Just (TokenInfo _ (toBool -> True) (toBool -> False) user) ->
             local (set userId user) handler <&>
               responseLBS (mkStatus (fromInteger
                 (natVal (Proxy @code))) "Success") [] . encode
@@ -86,7 +86,7 @@ instance ( KnownMethod m, KnownNat code, ToJSON a
         getCurrentTime >>= run . getTokenInfo token >>= \case
           Just (TokenInfo _ _ (toBool -> True) _) ->
             throwError err401TokenExpired
-          Just (TokenInfo user _ (toBool -> False) _) ->
+          Just (TokenInfo _ _ (toBool -> False) user) ->
             local (set userId user) handler <&>
               responseLBS (mkStatus (fromInteger
                 (natVal (Proxy @code))) "Success") [] . encode

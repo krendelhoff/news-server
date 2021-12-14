@@ -33,6 +33,7 @@ import Router
 import Types.DB
 import Types.Environment
 import Types.Router
+import Types.TH
 
 serverSettings :: Warp.Settings
 serverSettings = Warp.setBeforeMainLoop
@@ -50,5 +51,5 @@ main = do
   let poolSettings = (10, 5, mkConnStr conf)
   withPool poolSettings \pool -> do
     applyMigrations pool
-    let ?env = Environment pool conf nil
+    let ?env = Environment pool conf (fromUUID nil)
      in Warp.runSettings serverSettings $ serve @MyAPI app
