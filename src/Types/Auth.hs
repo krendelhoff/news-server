@@ -31,3 +31,8 @@ data LoginForm = LoginForm
   , loginFormPassword :: Password
   } deriving stock (Eq, Show, Generic) -- TODO TH FOR THIS, too verbose and boilerplate
     deriving (FromJSON) via Prefixed "loginForm" LoginForm
+
+data LoginInfo = LoginInfo
+  { loginInfoUserId :: Users.ID
+  , loginInfoIsAdmin :: IsAdmin
+  } deriving (Eq, Show)

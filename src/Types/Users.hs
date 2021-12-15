@@ -17,6 +17,7 @@ import Types.TH
 newUUIDType "ID"
 newTextType "Name"
 newTextType "Token"
+newTextType "Hash"
 newTextType "Surname"
 newTextType "Login"
 newByteaType "Picture"

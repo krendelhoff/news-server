@@ -10,7 +10,7 @@ import Types.Users
 
 import qualified Types.Users as Users (ID)
 
-type API = CreateAPI :<|> GetAPI
+type API = "users" :> (CreateAPI :<|> RequireUser :> GetAPI)
 
 server :: Server API
 server = create :<|> get
