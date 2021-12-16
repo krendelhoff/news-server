@@ -11,6 +11,7 @@ import qualified Types.Users as Users (ID)
 import Types.Auth
 import Types.Common
 import Types.Users
+import Hasql.Encoders (timestamptz)
 
 getTokenInfo :: Token -> CurrentTime -> Transaction (Maybe TokenInfo)
 getTokenInfo (toText -> mToken) (toUTCTime -> curTime) =
@@ -42,5 +43,7 @@ issueToken (toUTCTime -> expires) (toBool -> privileged) (toText -> token)
   statement (user, privileged, token, expires) [singletonStatement|
     INSERT INTO auth (user_id,privileged,token,expires)
     VALUES ($1::uuid,$2::bool,$3::text,$4::timestamptz)
+    ON CONFLICT ON CONSTRAINT auth_user_id_key
+    DO UPDATE SET token=$3::text,expires=$4::timestamptz
     RETURNING token::text,expires::timestamptz
                                                |]

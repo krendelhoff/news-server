@@ -17,6 +17,7 @@ CREATE TABLE auth
 , expires timestamp with time zone NOT NULL
 , user_id uuid NOT NULL REFERENCES users(id)
 , privileged bool NOT NULL
+, UNIQUE (user_id)
 );
 
 CREATE TABLE authors

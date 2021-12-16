@@ -43,9 +43,8 @@ makeFields ''CreateForm
 data TokenPayload = TokenPayload
   { tokenPayloadToken   :: Token
   , tokenPayloadExpires :: ExpirationDate
-  } deriving stock (Eq, Show, Generic)
-    deriving (FromJSON, ToJSON) via Prefixed "tokenPayload" TokenPayload
--- TODO TH FOR THIS, too verbose and boilerplate
+  }
+deriveWeb "tokenPayload" ''TokenPayload
 
 data Payload = Payload
   { payloadId         :: ID
@@ -56,5 +55,5 @@ data Payload = Payload
   , payloadPassword   :: Password
   , payloadCreatedAt  :: CreationTime
   , payloadPrivigeded :: IsAdmin
-  } deriving stock (Eq, Show, Generic)
-    deriving (FromJSON, ToJSON) via Prefixed "payload" Payload
+  } 
+deriveWeb "payload" ''Payload
