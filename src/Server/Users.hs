@@ -7,6 +7,7 @@ module Server.Users where
 
 import Control.Monad.Except
 import Network.HTTP.Types
+import Data.Aeson
 import Universum            hiding (get)
 
 import Common
@@ -40,6 +41,8 @@ create (CreateForm name surname login mAvatar password) = do
              >>= Auth.issueToken expirationDate (fromBool False) accessToken)
     _       -> throwError (mkError status403 "User already exists")
 
+-- >>> (encode (CreateForm "savely" "krendelhoff" "krendelhoff" Nothing "test123"))
+-- Just (CreateForm {createFormName = "savely", createFormSurname = "krendelhoff", createFormLogin = "krendelhoff", createFormAvatar = Nothing, createFormPassword = "test123"})
 type GetAPI = Get Payload
 
 get :: Server GetAPI

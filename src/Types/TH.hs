@@ -1,11 +1,15 @@
 {-# LANGUAGE BlockArguments      #-}
+{-# LANGUAGE DataKinds           #-}
 {-# LANGUAGE DerivingStrategies  #-}
+{-# LANGUAGE DerivingVia         #-}
 {-# LANGUAGE QuasiQuotes         #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE StandaloneDeriving  #-}
 {-# LANGUAGE TemplateHaskell     #-}
 {-# LANGUAGE ViewPatterns        #-}
 module Types.TH where
 
+import Control.Lens
 import Data.Aeson
 import Data.Char           (toLower)
 import Data.List           (stripPrefix)
@@ -20,6 +24,8 @@ import qualified Data.Aeson      as B
 import qualified Data.ByteString as B
 import qualified Data.Text       as T
 
+import Data.Aeson.TH
+import Deriving.Aeson
 import Types.TH.Classes
 
 
@@ -139,8 +145,9 @@ newByteaType metaName = let name = mkName metaName in
 -- TODO FromJSON, toJSON
 
 newUTCTimeType :: String -> DecsQ
-newUTCTimeType metaName = let name = mkName metaName in
-                         return [NewtypeD [] name [] Nothing
+newUTCTimeType metaName = let name = mkName metaName;
+                              isoName = mkName "utctime";
+                         in return [NewtypeD [] name [] Nothing
                            (NormalC name [
                                (Bang NoSourceUnpackedness NoSourceStrictness
                                , ConT ''UTCTime) ]) [
@@ -155,6 +162,27 @@ newUTCTimeType metaName = let name = mkName metaName in
                                       , ''IsUTCTime
                                       ] ]]
 
+deriveWeb :: String -> Name -> DecsQ
+deriveWeb pref name =
+  [d| deriving stock instance Eq $(conT name)
+      deriving stock instance Show $(conT name)
+      deriving stock instance Generic $(conT name)
+    |]
+    `conc` deriveJSON (stripPrefixDecapitalizeOptions pref) name
+
+--      deriving via (CustomJSON '[ FieldLabelModifier
+--                                   '[ StripPrefix $(litT (strTyLit pref))
+--                                    , Decapitalize
+--                                    ]
+--                                  , OmitNothingFields
+--                                  ] $(conT name)) instance ToJSON $(conT name)
+
+
+data Decapitalize
+
+instance StringModifier Decapitalize where
+  getStringModifier = decapitalize
+
 decapitalize :: String -> String
 decapitalize []     = []
 decapitalize (x:xs) = toLower x : xs
@@ -162,6 +190,13 @@ decapitalize (x:xs) = toLower x : xs
 modifier :: [Char] -> [Char] -> String
 modifier metaName (stripPrefix metaName -> Just x) = decapitalize x
 modifier _ x                                       = x
+
+stripPrefixDecapitalizeOptions :: [Char] -> Options
+stripPrefixDecapitalizeOptions pref =
+  defaultOptions { fieldLabelModifier = modifier pref
+                 , omitNothingFields = True
+                 , sumEncoding = UntaggedValue
+                 }
 
 newEnumType :: String -> [String] -> DecsQ
 newEnumType metaName elems = do
@@ -206,5 +241,3 @@ newEnumType metaName elems = do
                                    <> " of type "
                                    <> metaName
      |]
-
--- TODO deriveComposite

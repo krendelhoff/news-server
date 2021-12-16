@@ -9,7 +9,7 @@ CREATE TABLE users
 , password_hash text NOT NULL
 , created_at timestamp with time zone NOT NULL DEFAULT now()
 , privileged bool NOT NULL DEFAULT false
-, CONSTRAINT UNIQUE (login, password_hash)
+, UNIQUE (login, password_hash)
 );
 
 CREATE TABLE auth

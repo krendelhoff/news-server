@@ -72,7 +72,7 @@ instance HasServer r => HasServer (RequireUser :> r) where
 instance (HasServer r, FromJSON a) => HasServer (ReqBody a :> r) where
   type Server (ReqBody a :> r) = a -> Server r
   route :: (a -> Server r) -> RequestInfo -> Maybe (Handler Response)
-  route f req@(view body -> bodyStr) = case decodeStrict bodyStr of
+  route f req@(view body -> bodyStr) = case decodeStrict @a bodyStr of
     Nothing -> Just $ throwError $
       mkError status400 "Request body format violation"
     Just a  -> route @r (f a) req

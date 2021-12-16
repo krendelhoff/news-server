@@ -1,9 +1,11 @@
 {-# LANGUAGE TypeApplications #-}
 module Common where
 
+import Control.Lens    (Iso', iso)
 import Crypto.Hash
-import Data.Time   (addUTCTime)
-import Universum   hiding (toText)
+import Data.Time       (addUTCTime)
+import Data.Time.Clock (UTCTime)
+import Universum       hiding (toText)
 
 import qualified Crypto.Random as Crypto
 import qualified Data.Time     as Time
@@ -11,6 +13,7 @@ import qualified Data.Time     as Time
 import Types.Common
 import Types.TH
 import Types.Users
+
 
 getCurrentTime :: MonadIO m => m CurrentTime
 getCurrentTime = liftIO Time.getCurrentTime <&> fromUTCTime
@@ -30,5 +33,7 @@ getExpirationDate ::  MonadIO m => m ExpirationDate
 getExpirationDate = getCurrentTime <&> fromUTCTime
                                      . addUTCTime (5*60*60)
                                      . toUTCTime
-                                     -- TODO
-                                     -- create isos
+
+
+utctime :: IsUTCTime a => Iso' a UTCTime
+utctime = iso toUTCTime fromUTCTime

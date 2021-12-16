@@ -18,7 +18,6 @@ extra-source-files:
     README.org
 data-files:
     migrations/01-initial.sql
-    migrations/02-auth_complementation.sql
 
 source-repository head
   type: git

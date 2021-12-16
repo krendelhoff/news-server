@@ -9,6 +9,7 @@
 {-# LANGUAGE StrictData                 #-}
 {-# LANGUAGE TemplateHaskell            #-}
 {-# LANGUAGE UndecidableInstances       #-}
+{-# LANGUAGE StandaloneDeriving #-}
 module Types.Users where
 
 import Control.Lens
@@ -17,6 +18,7 @@ import Deriving.Aeson.Stock
 import Universum
 
 import Types.Common
+import Deriving.Aeson
 
 newUUIDType "ID"
 newTextType "Surname"
@@ -33,9 +35,10 @@ data CreateForm = CreateForm
   , createFormLogin    :: Login
   , createFormAvatar   :: Maybe Picture
   , createFormPassword :: Password
-  } deriving stock (Eq, Show, Generic)
-    deriving (FromJSON, ToJSON) via Prefixed "createForm" CreateForm
+  }
+deriveWeb "createForm" ''CreateForm
 makeFields ''CreateForm
+
 
 data TokenPayload = TokenPayload
   { tokenPayloadToken   :: Token
