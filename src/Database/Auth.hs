@@ -10,7 +10,6 @@ import qualified Types.Users as Users (ID)
 
 import Types.Auth
 import Types.Common
-import Types.TH
 import Types.Users
 
 getTokenInfo :: Token -> CurrentTime -> Transaction (Maybe TokenInfo)
@@ -36,10 +35,10 @@ login (toText -> login) (toText -> passwordHash) =
                                   |]
 
 
-issueToken :: ExpirationDate -> Users.ID -> IsAdmin
-           -> Token -> Transaction TokenPayload
-issueToken (toUTCTime -> expires) (toUUID -> user) (toBool -> privileged)
-  (toText -> token) = uncurry TokenPayload . bimap fromText fromUTCTime <$>
+issueToken :: ExpirationDate -> IsAdmin -> Token
+           -> Users.ID -> Transaction TokenPayload
+issueToken (toUTCTime -> expires) (toBool -> privileged) (toText -> token)
+  (toUUID -> user) = uncurry TokenPayload . bimap fromText fromUTCTime <$>
   statement (user, privileged, token, expires) [singletonStatement|
     INSERT INTO auth (user_id,privileged,token,expires)
     VALUES ($1::uuid,$2::bool,$3::text,$4::timestamptz)

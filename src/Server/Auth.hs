@@ -11,7 +11,7 @@ import qualified Database.Auth as Auth
 import Router
 import Types.Auth
 import Types.Router
-import Types.Users
+import Types.Users hiding (login)
 import Common
 import DB (run)
 import Network.HTTP.Types.Status
@@ -29,8 +29,8 @@ login (LoginForm login password) = do
   run (Auth.login login $ hash password) >>= \case
     Nothing -> throwError (mkError status401 "User not found")
     Just (LoginInfo user rights) -> do
-      exprDate <- getCurrentTime <&> getExpirationDate
-      generateToken >>= run . Auth.issueToken exprDate user rights
+      exprDate <- getExpirationDate
+      generateToken >>= run . ($ user) . Auth.issueToken exprDate rights
 
 
 type RefreshAPI = "refresh" :> Post TokenPayload

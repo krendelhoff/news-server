@@ -29,6 +29,7 @@ library
       API
       Common
       Database.Auth
+      Database.Users
       DB
       Migration
       Router
@@ -38,6 +39,7 @@ library
       Types.Common
       Types.DB
       Types.Environment
+      Types.Lenses
       Types.Router
       Types.TH
       Types.TH.Classes

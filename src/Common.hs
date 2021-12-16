@@ -26,5 +26,9 @@ hash :: Password -> Hash
 hash = fromText . fromString . show
      . hashWith SHA256 . encodeUtf8 @Text @ByteString . toText
 
-getExpirationDate :: CurrentTime -> ExpirationDate
-getExpirationDate = fromUTCTime . addUTCTime (5*60*60) . toUTCTime
+getExpirationDate ::  MonadIO m => m ExpirationDate
+getExpirationDate = getCurrentTime <&> fromUTCTime
+                                     . addUTCTime (5*60*60)
+                                     . toUTCTime
+                                     -- TODO
+                                     -- create isos

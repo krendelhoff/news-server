@@ -9,12 +9,14 @@ CREATE TABLE users
 , password_hash text NOT NULL
 , created_at timestamp with time zone NOT NULL DEFAULT now()
 , privileged bool NOT NULL DEFAULT false
+, CONSTRAINT UNIQUE (login, password_hash)
 );
 
 CREATE TABLE auth
 ( token text NOT NULL
-, created_at timestamp with time zone NOT NULL DEFAULT now()
+, expires timestamp with time zone NOT NULL
 , user_id uuid NOT NULL REFERENCES users(id)
+, privileged bool NOT NULL
 );
 
 CREATE TABLE authors

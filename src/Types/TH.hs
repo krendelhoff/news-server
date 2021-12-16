@@ -9,19 +9,19 @@ module Types.TH where
 import Data.Aeson
 import Data.Char           (toLower)
 import Data.List           (stripPrefix)
+import Data.Time
 import Data.Traversable    (for)
 import Data.UUID           hiding (toText)
 import Language.Haskell.TH
 import Universum           hiding (toText)
 import Web.HttpApiData
-import Data.Time
 
-import qualified Data.Text as T
-
+import qualified Data.Aeson      as B
+import qualified Data.ByteString as B
+import qualified Data.Text       as T
 
 import Types.TH.Classes
-import qualified Data.ByteString as B
-import qualified Data.Aeson as B
+
 
 makeIsClass "Text"
 makeIsClass "Int64"
@@ -114,7 +114,7 @@ newBoolType metaName = let name = mkName metaName in
 -- FIXME REALLY, REALLY BAD FUNCTIONS
 instance FromJSON ByteString where
   parseJSON (String s) = return $ encodeUtf8 s
-  parseJSON _ = fail "Wrong format bytestring!"
+  parseJSON _          = fail "Wrong format bytestring!"
 
 instance ToJSON ByteString where
   toJSON = String . decodeUtf8
@@ -154,7 +154,7 @@ newUTCTimeType metaName = let name = mkName metaName in
                                       , ''FromHttpApiData
                                       , ''IsUTCTime
                                       ] ]]
- 
+
 decapitalize :: String -> String
 decapitalize []     = []
 decapitalize (x:xs) = toLower x : xs

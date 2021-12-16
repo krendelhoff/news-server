@@ -28,9 +28,7 @@ mkConnStr conf = encodeUtf8 $ "host=" <> conf^.hostName <> " "
 withConn :: ConnectionString -> (Connection -> IO ()) -> IO ()
 withConn connStr = bracket (new connStr) release
   where
-    new = acquire >=> \case
-      Left err   -> throwM err
-      Right conn -> return conn
+    new = acquire >=> either throwM return
 
 
 withPool :: Pool.Settings -> (Pool -> IO ()) -> IO ()
@@ -41,6 +39,4 @@ run :: (HasPool env Pool, MonadThrow m, MonadReader env m, MonadIO m) =>
        Transaction a -> m a
 run action = do
   view pool >>= liftIO . flip Pool.use (transaction Serializable Write action)
-            >>= \case
-              Left err -> throwM err
-              Right a  -> return a
+            >>= either throwM return

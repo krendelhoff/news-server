@@ -2,45 +2,45 @@
 {-# LANGUAGE DeriveGeneric              #-}
 {-# LANGUAGE DerivingStrategies         #-}
 {-# LANGUAGE DerivingVia                #-}
+{-# LANGUAGE FlexibleInstances          #-}
+{-# LANGUAGE FunctionalDependencies     #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE StrictData                 #-}
 {-# LANGUAGE TemplateHaskell            #-}
 {-# LANGUAGE UndecidableInstances       #-}
 module Types.Users where
 
+import Control.Lens
 import Data.Aeson
 import Deriving.Aeson.Stock
 import Universum
 
-import Types.TH
+import Types.Common
 
 newUUIDType "ID"
-newTextType "Name"
-newTextType "Token"
-newTextType "Hash"
 newTextType "Surname"
+newTextType "Hash"
 newTextType "Login"
 newByteaType "Picture"
 newBoolType "IsAdmin"
 newUTCTimeType "CreationTime"
-newTextType "Password"
 newUTCTimeType "ExpirationDate"
 
 data CreateForm = CreateForm
-  { createFormName       :: Name
-  , createFormSurname    :: Surname
-  , createFormLogin      :: Login
-  , createFormAvatar     :: Picture
-  , createFormPassword   :: Password
-  , createFormCreatedAt  :: CreationTime
-  , createFormPrivigeded :: IsAdmin
+  { createFormName     :: Name
+  , createFormSurname  :: Surname
+  , createFormLogin    :: Login
+  , createFormAvatar   :: Maybe Picture
+  , createFormPassword :: Password
   } deriving stock (Eq, Show, Generic)
     deriving (FromJSON, ToJSON) via Prefixed "createForm" CreateForm
+makeFields ''CreateForm
 
 data TokenPayload = TokenPayload
   { tokenPayloadToken   :: Token
   , tokenPayloadExpires :: ExpirationDate
-  } deriving (Eq, Show, Generic)
+  } deriving stock (Eq, Show, Generic)
     deriving (FromJSON, ToJSON) via Prefixed "tokenPayload" TokenPayload
 -- TODO TH FOR THIS, too verbose and boilerplate
 

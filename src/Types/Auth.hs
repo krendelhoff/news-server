@@ -8,15 +8,14 @@
 {-# LANGUAGE UndecidableInstances       #-}
 module Types.Auth where
 
+import Data.Aeson
+import Deriving.Aeson.Stock
 import Universum
 
-import Types.TH
+import Types.Common
 import Types.Users
 
 import qualified Types.Users as Users (ID)
-
-import Data.Aeson
-import Deriving.Aeson.Stock
 
 newBoolType "IsExpired"
 
@@ -33,6 +32,6 @@ data LoginForm = LoginForm
     deriving (FromJSON) via Prefixed "loginForm" LoginForm
 
 data LoginInfo = LoginInfo
-  { loginInfoUserId :: Users.ID
+  { loginInfoUserId  :: Users.ID
   , loginInfoIsAdmin :: IsAdmin
   } deriving (Eq, Show)
