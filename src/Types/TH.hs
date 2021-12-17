@@ -16,6 +16,8 @@ import Data.List           (stripPrefix)
 import Data.Time
 import Data.Traversable    (for)
 import Data.UUID           hiding (toText)
+import Data.Aeson.TH
+import Deriving.Aeson
 import Language.Haskell.TH
 import Universum           hiding (toText)
 import Web.HttpApiData
@@ -24,8 +26,6 @@ import qualified Data.Aeson      as B
 import qualified Data.ByteString as B
 import qualified Data.Text       as T
 
-import Data.Aeson.TH
-import Deriving.Aeson
 import Types.TH.Classes
 
 
@@ -142,12 +142,10 @@ newByteaType metaName = let name = mkName metaName in
                                       , ''FromJSON
                                       , ''IsByteString
                                       ] ]]
--- TODO FromJSON, toJSON
 
 newUTCTimeType :: String -> DecsQ
 newUTCTimeType metaName = let name = mkName metaName;
-                              isoName = mkName "utctime";
-                         in return [NewtypeD [] name [] Nothing
+                           in return [NewtypeD [] name [] Nothing
                            (NormalC name [
                                (Bang NoSourceUnpackedness NoSourceStrictness
                                , ConT ''UTCTime) ]) [

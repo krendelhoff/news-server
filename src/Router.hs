@@ -21,13 +21,12 @@ module Router where
 import Control.Applicative
 import Control.Lens         ((<>~))
 import Control.Monad.Cont
-import Control.Monad.Except
 import DB                   (run)
 import Data.Aeson
 import Data.List            (lookup)
 import Data.Word8           (isSpace)
-import GHC.TypeLits
 import Network.HTTP.Types
+import GHC.TypeLits
 import Network.Wai
 import Universum            hiding (natVal)
 import Web.HttpApiData
@@ -52,10 +51,11 @@ class HasServer layout where
   type Server (layout :: Type) :: Type
   route :: Server layout -> RequestInfo -> Maybe (Handler Response)
 
+-- TODO TEST THAT FUNCTION
 extractToken :: RequestHeaders -> Either TokenError Token
 extractToken hMap = case lookup "Authorization" hMap of
   Nothing -> Left NoToken
-  Just (((fromText <$>) . decodeUtf8' <$>)
+  Just (((fromText . T.strip <$>) . decodeUtf8' <$>)
        . B.break isSpace -> ("Bearer", Right token)) -> Right token
   _ -> Left BadToken
 

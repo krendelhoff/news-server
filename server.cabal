@@ -38,6 +38,7 @@ library
       Types.Common
       Types.DB
       Types.Environment
+      Types.Errors
       Types.Lenses
       Types.Router
       Types.TH

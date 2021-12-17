@@ -3,6 +3,7 @@
 {-# LANGUAGE DerivingStrategies         #-}
 {-# LANGUAGE DerivingVia                #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE StandaloneDeriving         #-}
 {-# LANGUAGE StrictData                 #-}
 {-# LANGUAGE TemplateHaskell            #-}
 {-# LANGUAGE UndecidableInstances       #-}
@@ -28,8 +29,8 @@ data TokenInfo = TokenInfo { tokenInfoToken   :: Token
 data LoginForm = LoginForm
   { loginFormLogin    :: Login
   , loginFormPassword :: Password
-  } deriving stock (Eq, Show, Generic) -- TODO TH FOR THIS, too verbose and boilerplate
-    deriving (FromJSON) via Prefixed "loginForm" LoginForm
+  }
+deriveWeb "loginForm" ''LoginForm
 
 data LoginInfo = LoginInfo
   { loginInfoUserId  :: Users.ID

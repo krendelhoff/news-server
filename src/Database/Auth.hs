@@ -22,7 +22,7 @@ getTokenInfo (toText -> mToken) (toUTCTime -> curTime) =
   where
     encodeTokenInfo ( fromText -> token
                     , fromBool -> privileged
-                    , fromBool . (>= curTime) -> expired
+                    , fromBool . (<= curTime) -> expired
                     , fromUUID -> user
                     ) = TokenInfo token privileged expired user
 

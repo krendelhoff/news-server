@@ -25,6 +25,7 @@ import Types.Environment
 data ServerError = WrongPath | ServerError Status Message
   deriving (Eq, Show, Exception)
 
+-- TODO MOVE ALL ERRORS TO ANOTHER MODULE
 mkError :: Status -> Message -> ServerError
 mkError = ServerError
 

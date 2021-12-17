@@ -5,8 +5,6 @@
 {-# LANGUAGE BlockArguments #-}
 module Server.Users where
 
-import Control.Monad.Except
-import Network.HTTP.Types
 import Data.Aeson
 import Universum            hiding (get)
 
@@ -15,6 +13,7 @@ import DB           (run)
 import Router
 import Types.Common
 import Types.Router
+import Types.Environment
 import Types.Users
 
 import qualified Database.Auth as Auth
@@ -25,8 +24,6 @@ type API = "users" :> (CreateAPI :<|> RequireUser :> GetAPI)
 
 server :: Server API
 server = create :<|> get
-
--- TODO all statuses and throwError to dedicated namespace
 
 type CreateAPI = "create" :> ReqBody CreateForm :> Post TokenPayload
 
@@ -45,4 +42,4 @@ create (CreateForm name surname login mAvatar password) = do
 type GetAPI = Get Payload
 
 get :: Server GetAPI
-get = undefined
+get = view userId >>= run . Users.get 

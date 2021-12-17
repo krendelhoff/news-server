@@ -39,7 +39,6 @@ data CreateForm = CreateForm
 deriveWeb "createForm" ''CreateForm
 makeFields ''CreateForm
 
-
 data TokenPayload = TokenPayload
   { tokenPayloadToken   :: Token
   , tokenPayloadExpires :: ExpirationDate
@@ -51,8 +50,7 @@ data Payload = Payload
   , payloadName       :: Name
   , payloadSurname    :: Surname
   , payloadLogin      :: Login
-  , payloadAvatar     :: Picture
-  , payloadPassword   :: Password
+  , payloadAvatar     :: Maybe Picture
   , payloadCreatedAt  :: CreationTime
   , payloadPrivigeded :: IsAdmin
   } 
