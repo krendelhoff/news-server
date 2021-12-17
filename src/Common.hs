@@ -1,8 +1,14 @@
 {-# LANGUAGE TypeApplications #-}
-module Common where
+module Common ( module Logger
+              , getCurrentTime
+              , getExpirationDate
+              , utctime
+              , hash
+              , generateToken
+              ) where
 
 import Control.Lens    (Iso', iso)
-import Crypto.Hash
+import Crypto.Hash     hiding (hash)
 import Data.Time       (addUTCTime)
 import Data.Time.Clock (UTCTime)
 import Universum       hiding (toText)
@@ -10,6 +16,7 @@ import Universum       hiding (toText)
 import qualified Crypto.Random as Crypto
 import qualified Data.Time     as Time
 
+import Logger
 import Types.Common
 import Types.TH
 import Types.Users

@@ -176,4 +176,3 @@ serve s req respond = do
         Nothing -> respond $ toResponse err404
         Just handler -> runExceptT (runReaderT (runHandler handler) ?env)
                         >>= either (respond . toResponse) respond
-

@@ -15,6 +15,7 @@ import Universum
 import qualified Hasql.Pool as Pool
 
 import Types.DB
+import Logger
 
 
 mkConnStr :: DbConfig -> ConnectionString
@@ -35,8 +36,8 @@ withPool :: Pool.Settings -> (Pool -> IO ()) -> IO ()
 withPool s = bracket (Pool.acquire s) Pool.release
 
 
-run :: (HasPool env Pool, MonadThrow m, MonadReader env m, MonadIO m) =>
-       Transaction a -> m a
+run :: ( HasPool env Pool, HasLogger env Logger
+       , MonadThrow m, MonadReader env m, MonadIO m ) => Transaction a -> m a
 run action = do
   view pool >>= liftIO . flip Pool.use (transaction Serializable Write action)
             >>= either throwM return

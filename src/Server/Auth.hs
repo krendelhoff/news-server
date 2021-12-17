@@ -4,13 +4,14 @@
 {-# LANGUAGE LambdaCase #-}
 module Server.Auth where
 
-import Universum
+import Universum hiding (toText)
 
 import qualified Database.Auth as Auth
 
 import Router
 import Types.Auth
 import Types.Router
+import Types.Common
 import Types.Users hiding (login)
 import Common
 import DB (run)
@@ -30,6 +31,7 @@ login (LoginForm login password) = do
     Nothing -> throwError (mkError status401 "User not found")
     Just (LoginInfo user rights) -> do
       exprDate <- getExpirationDate
+      log (mkLog INFO $ "User " <> toText login <> " made login")
       generateToken >>= run . ($ user) . Auth.issueToken exprDate rights
 
 
