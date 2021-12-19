@@ -22,7 +22,7 @@ import Universum
 import Data.Aeson
 import Types.Environment
 
-data ServerError = WrongPath | ServerError Status Message
+data ServerError = ServerError Status Message
   deriving (Eq, Show, Exception)
 
 -- TODO MOVE ALL ERRORS TO ANOTHER MODULE
@@ -44,7 +44,7 @@ err403TokenExpired = ServerError status401 "Token expired"
 err403TokenInvalid :: ServerError
 err403TokenInvalid = ServerError status401 "Token invalid"
 
-data TokenError = NoToken | BadToken
+data TokenError = NoToken | BadToken deriving (Eq, Show)
 
 newtype Message = Message { message :: Text }
   deriving stock (Eq, Show, Generic)
@@ -55,7 +55,8 @@ newtype Handler a = Handler
   { runHandler :: ReaderT Environment (ExceptT ServerError IO) a }
   deriving newtype ( Functor, Applicative, Monad
                    , MonadError ServerError, MonadReader Environment
-                   , MonadThrow, MonadCatch, MonadIO )
+                   , MonadThrow, MonadCatch, MonadIO
+                   )
 
 data AuthLevel = NoAuth | RequireUser | RequireAdmin deriving (Eq, Show)
 

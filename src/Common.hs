@@ -1,26 +1,50 @@
-{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TypeApplications  #-}
+{-# LANGUAGE ViewPatterns      #-}
 module Common ( module Logger
               , getCurrentTime
               , getExpirationDate
               , utctime
               , hash
               , generateToken
+              , toResponse
+              , extractToken
               ) where
 
-import Control.Lens    (Iso', iso)
-import Crypto.Hash     hiding (hash)
-import Data.Time       (addUTCTime)
-import Data.Time.Clock (UTCTime)
-import Universum       hiding (toText)
+import Control.Lens       (Iso', iso)
+import Crypto.Hash        hiding (hash)
+import Data.Aeson         (encode)
+import Data.List          (lookup)
+import Data.Time          (addUTCTime)
+import Data.Time.Clock    (UTCTime)
+import Data.Word8         (isSpace)
+import Network.HTTP.Types
+import Network.Wai        (Response, responseLBS)
+import Universum          hiding (toText)
 
-import qualified Crypto.Random as Crypto
-import qualified Data.Time     as Time
+import qualified Crypto.Random   as Crypto
+import qualified Data.ByteString as B
+import qualified Data.Text       as T
+import qualified Data.Time       as Time
 
 import Logger
+
 import Types.Common
+import Types.Router (ServerError(ServerError), TokenError(..))
 import Types.TH
 import Types.Users
 
+
+-- TODO normal module structure
+toResponse :: ServerError -> Response
+toResponse (ServerError st m) = responseLBS st [] (encode m)
+
+extractToken :: RequestHeaders -> Either TokenError Token
+extractToken hMap = case lookup "Authorization" hMap of
+  Nothing -> Left NoToken
+  Just (((fromText . T.strip <$>) . decodeUtf8' <$>)
+       . B.break isSpace -> ("Bearer", Right token)) -> Right token
+  _ -> Left BadToken
 
 getCurrentTime :: MonadIO m => m CurrentTime
 getCurrentTime = liftIO Time.getCurrentTime <&> fromUTCTime

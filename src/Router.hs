@@ -51,14 +51,6 @@ class HasServer layout where
   type Server (layout :: Type) :: Type
   route :: Server layout -> RequestInfo -> Maybe (Handler Response)
 
--- TODO TEST THAT FUNCTION
-extractToken :: RequestHeaders -> Either TokenError Token
-extractToken hMap = case lookup "Authorization" hMap of
-  Nothing -> Left NoToken
-  Just (((fromText . T.strip <$>) . decodeUtf8' <$>)
-       . B.break isSpace -> ("Bearer", Right token)) -> Right token
-  _ -> Left BadToken
-
 instance HasServer r => HasServer (RequireAdmin :> r) where
   type Server (RequireAdmin :> r) = Server r
   route :: Server r -> RequestInfo -> Maybe (Handler Response)
@@ -151,10 +143,6 @@ instance ( FromHttpApiData a, HasServer r
                        <> fromString (symbolVal $ Proxy @id)
     Right a  -> route @r (handler a) (req & path .~ xs)
   route _ _ = Nothing
-
-toResponse :: ServerError -> Response
-toResponse WrongPath          = toResponse err404
-toResponse (ServerError st m) = responseLBS st [] (encode m)
 
 serve :: forall layout. (?env :: Environment, HasServer layout) => Server layout
                                                                 -> Application
