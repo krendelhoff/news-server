@@ -11,8 +11,8 @@ import Universum
 
 import qualified Hasql.Pool as HaSQL
 
-import Logger   (Logger, HasLogger(..))
-import Types.DB
+import Types.Common
+import Logger
 
 import qualified Types.Users as Users
 

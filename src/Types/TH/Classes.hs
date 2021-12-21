@@ -1,9 +1,26 @@
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE BlockArguments  #-}
+{-# LANGUAGE LambdaCase      #-}
 {-# LANGUAGE QuasiQuotes     #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE ViewPatterns    #-}
 module Types.TH.Classes where
 
-import Universum
+import Data.Traversable    (for)
 import Language.Haskell.TH
+import Universum
+import Data.List (stripPrefix)
+import Data.Char
+
+decapitalize :: String -> String
+decapitalize []     = []
+decapitalize (x:xs) = toLower x : xs
+
+stripDecapitalizeModifier :: [Char] -> [Char] -> String
+stripDecapitalizeModifier prefix metaName = decapitalize $ stripModifier prefix metaName
+
+stripModifier :: [Char] -> [Char] -> String
+stripModifier metaName (stripPrefix metaName -> Just x) = x
+stripModifier _ x                                       = x
 
 makeIsClass :: String -> DecsQ
 makeIsClass metaName = let className = mkName $ "Is" <> metaName;
@@ -17,3 +34,23 @@ makeIsClass metaName = let className = mkName $ "Is" <> metaName;
              , InstanceD Nothing [] (AppT (ConT className) (ConT name))
                  [ ValD (VarP fromName) (NormalB (VarE 'id)) []
                  , ValD (VarP toName)   (NormalB (VarE 'id)) [] ]]
+
+
+makeKnown' :: (String -> String) -> Name -> DecsQ
+makeKnown' modifier metaName = do
+  (TyConI (DataD [] _ [] Nothing cons [])) <- reify metaName
+  names <- for cons \case
+    NormalC name [] -> return name
+    _               -> fail "Use only for enumeration types"
+  return $ [ClassD [] className [KindedTV (mkName "a") (ConT metaName)]  []
+            [ SigD functionName (ConT metaName) ]
+           ] <> createInstances names
+  where
+    className = mkName $ "Known" <> modifier (nameBase metaName)
+    functionName = mkName $ decapitalize (modifier (nameBase metaName)) <> "Val"
+    createInstances = map \mName -> let name = mkName (nameBase mName) in
+      InstanceD Nothing [] (AppT (ConT className) (PromotedT name))
+        [ ValD (VarP functionName) (NormalB (ConE name)) [] ]
+
+makeKnown :: Name -> DecsQ
+makeKnown = makeKnown' id

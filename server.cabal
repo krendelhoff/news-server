@@ -30,6 +30,7 @@ library
       Database.Auth
       Database.Users
       DB
+      Errors
       Logger
       Migration
       Router

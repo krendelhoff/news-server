@@ -181,17 +181,11 @@ data Decapitalize
 instance StringModifier Decapitalize where
   getStringModifier = decapitalize
 
-decapitalize :: String -> String
-decapitalize []     = []
-decapitalize (x:xs) = toLower x : xs
 
-modifier :: [Char] -> [Char] -> String
-modifier metaName (stripPrefix metaName -> Just x) = decapitalize x
-modifier _ x                                       = x
 
 stripPrefixDecapitalizeOptions :: [Char] -> Options
 stripPrefixDecapitalizeOptions pref =
-  defaultOptions { fieldLabelModifier = modifier pref
+  defaultOptions { fieldLabelModifier = stripDecapitalizeModifier pref
                  , omitNothingFields = True
                  , sumEncoding = UntaggedValue
                  }

@@ -13,6 +13,7 @@ import Paths_server               (getDataDir)
 import Universum                  hiding (use)
 
 import Types.DB
+import Common
 
 applyMigrations :: Pool -> IO ()
 applyMigrations pool = do

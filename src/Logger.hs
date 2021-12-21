@@ -29,7 +29,7 @@ import Universum          hiding (toText)
 import Data.Coerce  (coerce)
 import Types.Common hiding (fromText)
 
-data Level = NONE | ERROR | WARN | DEBUG | INFO deriving (Eq, Ord, Show)
+data Level = ERROR | WARN | DEBUG | INFO deriving (Eq, Ord, Show)
 deriveTextShow ''Level
 
 data Log = Log { _level  :: Level

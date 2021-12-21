@@ -18,38 +18,10 @@ import Control.Monad.Except
 import GHC.TypeLits
 import Network.HTTP.Types
 import Universum
-
 import Data.Aeson
+
 import Types.Environment
-
-data ServerError = ServerError Status Message
-  deriving (Eq, Show, Exception)
-
--- TODO MOVE ALL ERRORS TO ANOTHER MODULE
-mkError :: Status -> Message -> ServerError
-mkError = ServerError
-
-err404 :: ServerError
-err404 = ServerError status404 "Not found"
-
-err500 :: ServerError
-err500 = ServerError status500 "Internal Error"
-
-err401 :: ServerError
-err401 = ServerError status401 "Unauthorized"
-
-err403TokenExpired :: ServerError
-err403TokenExpired = ServerError status401 "Token expired"
-
-err403TokenInvalid :: ServerError
-err403TokenInvalid = ServerError status401 "Token invalid"
-
-data TokenError = NoToken | BadToken deriving (Eq, Show)
-
-newtype Message = Message { message :: Text }
-  deriving stock (Eq, Show, Generic)
-  deriving anyclass (ToJSON)
-  deriving newtype (IsString, Semigroup, Monoid)
+import Common
 
 newtype Handler a = Handler
   { runHandler :: ReaderT Environment (ExceptT ServerError IO) a }
@@ -85,22 +57,7 @@ data SMethod (m :: StdMethod) where
   SGet    :: SMethod 'GET
   SDelete :: SMethod 'DELETE
 
--- makeKnown "StdMethod"
-class KnownMethod (m :: StdMethod) where
-  methodVal :: StdMethod
--- use danil's hkd for update methods
---TODO TH CREATION
-instance KnownMethod 'PUT where
-  methodVal = PUT
-
-instance KnownMethod 'POST where
-  methodVal = POST
-
-instance KnownMethod 'GET where
-  methodVal = GET
-
-instance KnownMethod 'DELETE where
-  methodVal = DELETE
+makeKnown' (stripModifier "Std") ''StdMethod
 
 data Verb (m :: StdMethod) (code :: Nat) (a :: Type)
 

@@ -9,9 +9,11 @@ module Types.Lenses ( Password
                     , HasName(..)
                     , Token
                     , HasToken(..)
+                    , HasPool(..)
                     ) where
 
 import Control.Lens
+import Hasql.Pool   (Pool)
 import Universum
 
 import Types.TH
@@ -28,3 +30,6 @@ makeFieldsNoPrefix ''DummyName
 
 newtype DummyToken = DummyToken { _token :: Token }
 makeFieldsNoPrefix ''DummyToken
+
+newtype DummyPool = DummyPool { _pool :: Pool }
+makeFieldsNoPrefix ''DummyPool

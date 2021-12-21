@@ -8,8 +8,7 @@
 {-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE TemplateHaskell            #-}
 {-# LANGUAGE TypeSynonymInstances       #-}
-module Types.DB ( HasPool(..)
-                , ConnectionString
+module Types.DB ( ConnectionString
                 , HasDbConfig(..)
                 , DbConfig(DbConfig)
                 , dbConfigDecoder
@@ -23,8 +22,7 @@ import Dhall
 import Universum
 
 -- dummy record for typeclass creation
-newtype DBPool = DBPool { _pool :: Pool }
-makeFieldsNoPrefix ''DBPool
+
 
 -- TODO TH CREATION
 newtype HostName = HostName Text deriving stock (Eq, Show)
@@ -37,7 +35,7 @@ data DbConfig = DbConfig { _hostName :: Text
                          , _port     :: Text
                          , _user     :: Text
                          , _dbname   :: Text
-                         , _password :: Text
+                         , _dbPassword :: Text
                          } deriving (Generic, Eq, Show)
 makeClassy ''DbConfig
 
@@ -51,7 +49,3 @@ dbConfigDecoder = record
                     )
 
 type ConnectionString = ByteString
-
-instance Exception ConnectionError
-instance Exception MigrationError
-instance Exception Pool.UsageError

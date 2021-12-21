@@ -14,7 +14,7 @@ import Universum
 
 import qualified Hasql.Pool as Pool
 
-import Types.DB
+import Common
 import Logger
 
 
@@ -23,7 +23,7 @@ mkConnStr conf = encodeUtf8 $ "host=" <> conf^.hostName <> " "
                            <> "port=" <> conf^.port <> " "
                            <> "user=" <> conf^.user <> " "
                            <> "dbname=" <> conf^.dbname <> " "
-                           <> "password=" <> conf^.password
+                           <> "password=" <> conf^.dbPassword
 
 
 withConn :: ConnectionString -> (Connection -> IO ()) -> IO ()

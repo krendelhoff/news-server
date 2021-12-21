@@ -40,11 +40,37 @@ import Types.Router
 import Types.TH
 import Types.Users
 
+import qualified Types.Users as Users
+
 import qualified Data.ByteString      as B
 import qualified Data.ByteString.Lazy as BL (toStrict)
 import qualified Data.Text            as T
 
 -- type instance Server (QueryParams s a :> r) = Vector a -> Server r
+
+authenticate :: AuthLevel -> RequestHeaders -> Handler (Maybe Users.ID)
+authenticate RequireAdmin headers =
+  case extractToken headers of
+    Right token -> do
+      getCurrentTime >>= run . getTokenInfo token >>= \case
+        Just (TokenInfo _ (toBool -> True) (toBool -> True) _) ->
+          throwError err403TokenExpired
+        Just (TokenInfo _ (toBool -> True) (toBool -> False) user) ->
+          return $ Just user
+        _ -> throwError err404
+    _ -> throwError err404
+authenticate RequireUser headers =
+  case extractToken headers of
+    Left NoToken -> throwError err401
+    Left BadToken -> throwError err403TokenInvalid
+    Right token -> do
+      getCurrentTime >>= run . getTokenInfo token >>= \case
+        Just (TokenInfo _ _ (toBool -> True) _) ->
+          throwError err403TokenExpired
+        Just (TokenInfo _ _ (toBool -> False) user) ->
+          return $ Just user
+        _ -> throwError err401
+authenticate NoAuth _ = return Nothing
 
 
 class HasServer layout where
@@ -74,34 +100,19 @@ instance ( KnownMethod m, KnownNat code, ToJSON a
   type Server (Verb m code a) = Handler a
   route :: Handler a -> RequestInfo -> Maybe (Handler Response)
   route _ (view method -> m) | m /= methodVal @m = Nothing
-  route handler req@(view auth -> RequireAdmin) =
-    case extractToken $ req^.headers of
-      Right token -> do
-        Just $ getCurrentTime >>= run . getTokenInfo token >>= \case
-          Just (TokenInfo _ (toBool -> True) (toBool -> True) _) ->
-            throwError err403TokenExpired
-          Just (TokenInfo _ (toBool -> True) (toBool -> False) user) ->
-            local (set userId user) handler <&>
-                     responseLBS (mkStatus (fromInteger
-                       (natVal (Proxy @code))) "Success") [] . encode
-          _ -> throwError err404
-      _ -> Nothing
-  route handler req@(view auth -> RequireUser) =
-    case extractToken $ req^.headers of
-      Left NoToken -> Just $ throwError err401
-      Left BadToken -> Just $ throwError err403TokenInvalid
-      Right token -> do
-        Just $ getCurrentTime >>= run . getTokenInfo token >>= \case
-          Just (TokenInfo _ _ (toBool -> True) _) ->
-            throwError err403TokenExpired
-          Just (TokenInfo _ _ (toBool -> False) user) ->
-            local (set userId user) handler <&>
-                     responseLBS (mkStatus (fromInteger
-                       (natVal (Proxy @code))) "Success") [] . encode
-          _ -> throwError err401
-  route handler _ =
-    Just $ handler <&> responseLBS (mkStatus (fromInteger
-       (natVal (Proxy @code))) "Success") [] . encode
+  route handler req@(view auth -> authLevel) = Just do
+    authenticate authLevel (req^.headers) >>= \case
+      Nothing -> withNoAuthRespond
+      Just user -> withAuthRespond user
+    where
+      withAuthRespond user =
+        local (set userId user) handler <&>
+          responseLBS (mkStatus (fromInteger
+            (natVal (Proxy @code))) "Success") defaultHeaders . encode
+      withNoAuthRespond =
+        handler <&> responseLBS (mkStatus (fromInteger
+          (natVal (Proxy @code))) "Success") defaultHeaders . encode
+      defaultHeaders = [("Content-type", "application/json")]
 
 
 instance (KnownSymbol s, FromHttpApiData a, HasServer r) =>
@@ -160,7 +171,11 @@ serve s req respond = do
                                 , _body = bodyStr
                                 , _auth = NoAuth
                                 }
+                    -- maybe better parse on fly (if error, no time wait for parsing)
       case route @layout s reqInfo of
         Nothing -> respond $ toResponse err404
-        Just handler -> runExceptT (runReaderT (runHandler handler) ?env)
+        Just handler -> do
+          let safeHandler = catch handler \(e :: SomeException) ->
+                return $ toResponse (mkError status500 (fromString (show e)))
+          runExceptT (runReaderT (runHandler safeHandler) ?env)
                         >>= either (respond . toResponse) respond
