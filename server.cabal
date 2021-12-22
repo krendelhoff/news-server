@@ -143,6 +143,8 @@ test-suite server-test
   main-is: Spec.hs
   other-modules:
       Test.Common
+      Test.Database
+      Test.Database.Users
       Paths_server
   hs-source-dirs:
       test

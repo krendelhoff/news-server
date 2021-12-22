@@ -34,22 +34,17 @@ import qualified Server.Users as Users
 
 serverSettings :: Warp.Settings
 serverSettings = Warp.setBeforeMainLoop
-                   (putStrLn @Text "Server initialized at localhost:5435...")
+                   (putStrLn @Text "Server initialized at localhost:3000...")
                    Warp.defaultSettings
 
 app :: Server API
 app = server
 
-mkLogger :: Level -> Logger -> IO ()
-mkLogger upperLvl logger = forever do
-  msg <- readChan @Log (coerce logger)
-  when (msg^.level <= upperLvl) do putStrLn @Text . showt $ msg
-
 main :: IO ()
 main = do
   conf <- readFile "config.dhall" >>= input dbConfigDecoder
   logger <- newLogger
-  forkIO do mkLogger INFO logger
+  forkIO do mkLoggingThread (Logging INFO) logger
   let poolSettings = (10, 5, mkConnStr conf)
   withPool poolSettings \pool -> do
     applyMigrations pool

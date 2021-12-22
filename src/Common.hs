@@ -4,6 +4,7 @@
 module Common ( module Logger
               , module Errors
               , module Types.Common
+              , module DB
               , getCurrentTime
               , getExpirationDate
               , utctime
@@ -32,6 +33,7 @@ import qualified Data.Time       as Time
 import Logger
 import Errors
 import Types.Common
+import DB
 import Types.Users
 
 

@@ -14,8 +14,9 @@ import Universum
 
 import qualified Hasql.Pool as Pool
 
-import Common
 import Logger
+import Errors
+import Types.Common
 
 
 mkConnStr :: DbConfig -> ConnectionString

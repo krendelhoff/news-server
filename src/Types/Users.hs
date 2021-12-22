@@ -24,7 +24,7 @@ newUUIDType "ID"
 newTextType "Surname"
 newTextType "Hash"
 newTextType "Login"
-newByteaType "Picture"
+newUUIDType "PictureID"
 newBoolType "IsAdmin"
 newUTCTimeType "CreationTime"
 newUTCTimeType "ExpirationDate"
@@ -33,7 +33,7 @@ data CreateForm = CreateForm
   { createFormName     :: Name
   , createFormSurname  :: Surname
   , createFormLogin    :: Login
-  , createFormAvatar   :: Maybe Picture
+  , createFormAvatar   :: Maybe PictureID
   , createFormPassword :: Password
   }
 deriveWeb "createForm" ''CreateForm
@@ -50,8 +50,9 @@ data Payload = Payload
   , payloadName       :: Name
   , payloadSurname    :: Surname
   , payloadLogin      :: Login
-  , payloadAvatar     :: Maybe Picture
+  , payloadAvatar     :: Maybe PictureID
   , payloadCreatedAt  :: CreationTime
-  , payloadPrivigeded :: IsAdmin
+  , payloadPrivileged :: IsAdmin
   } 
 deriveWeb "payload" ''Payload
+makeFields ''Payload

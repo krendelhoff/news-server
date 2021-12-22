@@ -34,7 +34,7 @@ makeIsClass "Int64"
 makeIsClass "UUID"
 makeIsClass "Bool"
 makeIsClass "UTCTime"
-makeIsClass "ByteString"
+--makeIsClass "ByteString"
 
 conc :: DecsQ -> DecsQ -> DecsQ
 conc = liftA2 (<>)
@@ -117,31 +117,31 @@ newBoolType metaName = let name = mkName metaName in
                                       , ''IsBool
                                       ] ]]
 
--- FIXME REALLY, REALLY BAD FUNCTIONS
-instance FromJSON ByteString where
-  parseJSON (String s) = return $ encodeUtf8 s
-  parseJSON _          = fail "Wrong format bytestring!"
-
-instance ToJSON ByteString where
-  toJSON = String . decodeUtf8
-
-newByteaType :: String -> DecsQ
-newByteaType metaName = let name = mkName metaName in
-                         return [NewtypeD [] name [] Nothing
-                           (NormalC name [
-                               (Bang NoSourceUnpackedness NoSourceStrictness
-                               , ConT ''ByteString) ]) [
-                           DerivClause (Just NewtypeStrategy) $
-                             map ConT [ ''Eq
-                                      , ''Ord
-                                      , ''Show
-                                      , ''Semigroup
-                                      , ''Monoid
-                                      , ''IsString
-                                      , ''ToJSON
-                                      , ''FromJSON
-                                      , ''IsByteString
-                                      ] ]]
+-- -- FIXME REALLY, REALLY BAD FUNCTIONS
+-- instance FromJSON ByteString where
+--   parseJSON (String s) = return $ encodeUtf8 s
+--   parseJSON _          = fail "Wrong format bytestring!"
+-- 
+-- instance ToJSON ByteString where
+--   toJSON = String . decodeUtf8
+-- 
+-- newByteaType :: String -> DecsQ
+-- newByteaType metaName = let name = mkName metaName in
+--                          return [NewtypeD [] name [] Nothing
+--                            (NormalC name [
+--                                (Bang NoSourceUnpackedness NoSourceStrictness
+--                                , ConT ''ByteString) ]) [
+--                            DerivClause (Just NewtypeStrategy) $
+--                              map ConT [ ''Eq
+--                                       , ''Ord
+--                                       , ''Show
+--                                       , ''Semigroup
+--                                       , ''Monoid
+--                                       , ''IsString
+--                                       , ''ToJSON
+--                                       , ''FromJSON
+--                                       , ''IsByteString
+--                                       ] ]]
 
 newUTCTimeType :: String -> DecsQ
 newUTCTimeType metaName = let name = mkName metaName;
