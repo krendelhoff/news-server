@@ -6,29 +6,26 @@
 {-# LANGUAGE GADTs                      #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE KindSignatures             #-}
+{-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE PolyKinds                  #-}
 {-# LANGUAGE TemplateHaskell            #-}
-{-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE TypeOperators              #-}
 module Types.Router where
 
 import Control.Lens
 import Control.Monad.Except
+import Data.Aeson
 import GHC.TypeLits
 import Network.HTTP.Types
 import Universum
-import Data.Aeson
 
+import qualified Data.ByteString.Lazy as BL
+
+import Errors
+import Types.Auth
+import Types.TH.Classes ( stripModifier, makeKnown', makeKnown )
 import Types.Environment
-import Common
-
-newtype Handler a = Handler
-  { runHandler :: ReaderT Environment (ExceptT ServerError IO) a }
-  deriving newtype ( Functor, Applicative, Monad
-                   , MonadError ServerError, MonadReader Environment
-                   , MonadThrow, MonadCatch, MonadIO
-                   )
 
 data AuthLevel = NoAuth | RequireUser | RequireAdmin deriving (Eq, Show)
 
@@ -42,14 +39,22 @@ instance Semigroup AuthLevel where
 instance Monoid AuthLevel where
   mempty = NoAuth
 
-data RequestInfo = RequestInfo { _path     :: [Text]
+newtype Handler a = Handler
+  { runHandler :: ExceptT ServerError IO a }
+  deriving newtype ( Functor, Applicative, Monad, MonadError ServerError
+                   , MonadThrow, MonadCatch, MonadMask, MonadIO
+                   )
+
+
+data RoutingInfo = RoutingInfo { _path     :: [Text]
                                , _method   :: StdMethod
                                , _queryStr :: Query
                                , _headers  :: RequestHeaders
-                               , _body     :: ByteString
+                               , _body     :: BL.ByteString
                                , _auth     :: AuthLevel
-                               } deriving (Eq, Show)
-makeLenses ''RequestInfo
+                               , _env      :: Environment Handler
+                               }
+makeLenses ''RoutingInfo
 
 data SMethod (m :: StdMethod) where
   SPut    :: SMethod 'PUT
@@ -59,12 +64,12 @@ data SMethod (m :: StdMethod) where
 
 makeKnown' (stripModifier "Std") ''StdMethod
 
-data Verb (m :: StdMethod) (code :: Nat) (a :: Type)
+data Verb (m :: StdMethod) (code :: Nat) (f :: Format) (a :: Type)
 
-type Get a    = Verb 'GET 200 a
-type Put a    = Verb 'PUT 200 a
-type Post a   = Verb 'POST 200 a
-type Delete a = Verb 'DELETE 200 a
+type Get a    = Verb 'GET 200 'JSON a
+type Put a    = Verb 'PUT 200 'JSON a
+type Post a   = Verb 'POST 200 'JSON a
+type Delete a = Verb 'DELETE 200 'JSON a
 
 data a :<|> b = a :<|> b
 infixr 8 :<|>
@@ -78,4 +83,13 @@ data QueryParam (s :: Symbol) (a :: Type)
 
 data QueryParams (s :: Symbol) (a :: Type)
 
-data ReqBody (a :: Type)
+data Format = Raw | JSON
+
+makeKnown ''Format
+
+data ReqBody (f :: Format) (a :: Type)
+
+data NoContent = NoContent
+
+instance ToJSON NoContent where
+  toJSON _ = object []

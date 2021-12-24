@@ -20,6 +20,7 @@ import qualified Types.Users as Users (ID)
 
 newBoolType "IsExpired"
 
+
 data TokenInfo = TokenInfo { tokenInfoToken   :: Token
                            , tokenInfoAdmin   :: IsAdmin
                            , tokenInfoExpired :: IsExpired

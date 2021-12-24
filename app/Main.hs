@@ -29,8 +29,7 @@ import Types.Environment
 import Types.Router
 import Types.TH
 
-import qualified Server.Auth  as Auth
-import qualified Server.Users as Users
+import qualified Application
 
 serverSettings :: Warp.Settings
 serverSettings = Warp.setBeforeMainLoop
@@ -48,5 +47,6 @@ main = do
   let poolSettings = (10, 5, mkConnStr conf)
   withPool poolSettings \pool -> do
     applyMigrations pool
-    let ?env = Environment pool conf (fromUUID nil) logger
+    appHandle <- Application.new @Handler pool
+    let ?env = Environment pool conf (fromUUID nil) appHandle logger
      in Warp.runSettings serverSettings $ serve @API app

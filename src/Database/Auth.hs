@@ -43,7 +43,7 @@ issueToken (toUTCTime -> expires) (toBool -> privileged) (toText -> token)
   statement (user, privileged, token, expires) [singletonStatement|
     INSERT INTO auth (user_id,privileged,token,expires)
     VALUES ($1::uuid,$2::bool,$3::text,$4::timestamptz)
-    ON CONFLICT ON CONSTRAINT auth_user_id_key
+    ON CONFLICT ON CONSTRAINT auth_pkey
     DO UPDATE SET token=$3::text,expires=$4::timestamptz
     RETURNING token::text,expires::timestamptz
                                                |]

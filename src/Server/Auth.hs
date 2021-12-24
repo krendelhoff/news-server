@@ -24,7 +24,7 @@ type API = "auth" :> (LoginAPI :<|> RequireUser :> RefreshAPI)
 server :: Server API
 server = login :<|> refresh
 
-type LoginAPI = "login" :> ReqBody LoginForm :> Post TokenPayload
+type LoginAPI = "login" :> ReqBody 'JSON LoginForm :> Post TokenPayload
 
 login :: Server LoginAPI
 login (LoginForm login password) = do

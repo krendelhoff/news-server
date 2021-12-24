@@ -26,6 +26,9 @@ source-repository head
 library
   exposed-modules:
       API
+      Application
+      Application.Effects.Users
+      Application.Users
       Common
       Database.Auth
       Database.Users
@@ -35,6 +38,7 @@ library
       Migration
       Router
       Server.Auth
+      Server.Pictures
       Server.Users
       Types.Auth
       Types.Common
@@ -57,6 +61,7 @@ library
     , base
     , bytestring
     , cryptonite
+    , data-has
     , deriving-aeson
     , dhall
     , exceptions
@@ -104,6 +109,7 @@ executable server
     , base
     , bytestring
     , cryptonite
+    , data-has
     , deriving-aeson
     , dhall
     , exceptions
@@ -156,6 +162,7 @@ test-suite server-test
     , base
     , bytestring
     , cryptonite
+    , data-has
     , deriving-aeson
     , dhall
     , exceptions

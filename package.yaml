@@ -34,6 +34,7 @@ dependencies:
 - raw-strings-qq
 - file-embed
 - time
+- data-has
 - warp
 - wai
 - wai-extra
@@ -52,7 +53,7 @@ dependencies:
 - word8
 - dhall
 - fmt
-- tasty
+- tasty # cringe
 - tasty-hspec
 - tasty-hedgehog
 

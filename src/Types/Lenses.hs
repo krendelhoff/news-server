@@ -33,3 +33,6 @@ makeFieldsNoPrefix ''DummyToken
 
 newtype DummyPool = DummyPool { _pool :: Pool }
 makeFieldsNoPrefix ''DummyPool
+
+instance HasPool Pool Pool where
+  pool = Universum.id

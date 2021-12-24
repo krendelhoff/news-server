@@ -6,10 +6,10 @@
 {-# LANGUAGE FunctionalDependencies     #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses      #-}
+{-# LANGUAGE StandaloneDeriving         #-}
 {-# LANGUAGE StrictData                 #-}
 {-# LANGUAGE TemplateHaskell            #-}
 {-# LANGUAGE UndecidableInstances       #-}
-{-# LANGUAGE StandaloneDeriving #-}
 module Types.Users where
 
 import Control.Lens
@@ -17,8 +17,8 @@ import Data.Aeson
 import Deriving.Aeson.Stock
 import Universum
 
-import Types.Common
 import Deriving.Aeson
+import Types.Common
 
 newUUIDType "ID"
 newTextType "Surname"
@@ -46,13 +46,13 @@ data TokenPayload = TokenPayload
 deriveWeb "tokenPayload" ''TokenPayload
 
 data Payload = Payload
-  { payloadId         :: ID
+  { payloadUserId     :: ID
   , payloadName       :: Name
   , payloadSurname    :: Surname
   , payloadLogin      :: Login
   , payloadAvatar     :: Maybe PictureID
   , payloadCreatedAt  :: CreationTime
   , payloadPrivileged :: IsAdmin
-  } 
+  }
 deriveWeb "payload" ''Payload
 makeFields ''Payload
