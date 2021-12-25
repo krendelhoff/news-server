@@ -32,7 +32,7 @@ login (LoginForm login password) = do
     Nothing -> throwError (mkError status401 "User not found")
     Just (LoginInfo user rights) -> do
       exprDate <- getExpirationDate
-      log @INFO $ "User " <> toText login <> " made login"
+      log INFO $ "User " <> toText login <> " made login"
       generateToken >>= run . ($ user) . Auth.issueToken exprDate rights
 
 

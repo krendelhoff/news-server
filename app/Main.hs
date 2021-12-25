@@ -47,6 +47,6 @@ main = do
   let poolSettings = (10, 5, mkConnStr conf)
   withPool poolSettings \pool -> do
     applyMigrations pool
-    appHandle <- Application.new @Handler pool
+    appHandle <- Application.new @Handler logger pool
     let ?env = Environment pool conf (fromUUID nil) appHandle logger
      in Warp.runSettings serverSettings $ serve @API app

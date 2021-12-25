@@ -20,11 +20,13 @@ import Universum
 import Deriving.Aeson
 import Types.Common
 
+import qualified Types.Pictures as Pictures
+
 newUUIDType "ID"
 newTextType "Surname"
 newTextType "Hash"
 newTextType "Login"
-newUUIDType "PictureID"
+
 newBoolType "IsAdmin"
 newUTCTimeType "CreationTime"
 newUTCTimeType "ExpirationDate"
@@ -33,7 +35,7 @@ data CreateForm = CreateForm
   { createFormName     :: Name
   , createFormSurname  :: Surname
   , createFormLogin    :: Login
-  , createFormAvatar   :: Maybe PictureID
+  , createFormAvatar   :: Maybe Pictures.ID
   , createFormPassword :: Password
   }
 deriveWeb "createForm" ''CreateForm
@@ -50,7 +52,7 @@ data Payload = Payload
   , payloadName       :: Name
   , payloadSurname    :: Surname
   , payloadLogin      :: Login
-  , payloadAvatar     :: Maybe PictureID
+  , payloadAvatar     :: Maybe Pictures.ID
   , payloadCreatedAt  :: CreationTime
   , payloadPrivileged :: IsAdmin
   }

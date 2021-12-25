@@ -9,12 +9,12 @@ import Types.Router
 
 import qualified Server.Auth  as Auth
 import qualified Server.Users as Users
-
-data Mock1
-data Mock2
-data Mock3
+import qualified Server.Pictures as Pictures
 
 type API = Auth.API :<|> Users.API
+      :<|> RequireUser :> Pictures.API
            
 server :: Server API
-server = Auth.server :<|> Users.server
+server = Auth.server
+    :<|> Users.server
+    :<|> Pictures.server

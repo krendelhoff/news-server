@@ -112,8 +112,8 @@ createStatus = case natVal (Proxy @code) of
 
 instance ( KnownMethod m, KnownNat code, ToJSON a
           ) => HasServer (Verb m code 'JSON a) where
-  type Server (Verb m code 'JSON a) = ReaderT (Environment Handler) Handler a
-  route :: ReaderT (Environment Handler) Handler a
+  type Server (Verb m code 'JSON a) = AppM (Environment Handler) Handler a
+  route :: AppM (Environment Handler) Handler a
         -> RoutingInfo -> Maybe (Handler Response)
   route _ (view method -> m) | m /= methodVal @m = Nothing
   route handler req@(view auth -> authLevel) = Just do
@@ -121,19 +121,19 @@ instance ( KnownMethod m, KnownNat code, ToJSON a
       >>= maybe withNoAuthRespond withAuthRespond
     where
       withAuthRespond user =
-        runReaderT (handler <&>
-          responseLBS (createStatus @code) defaultHeaders . encode)
+        runReaderT (runAppM (handler <&>
+          responseLBS (createStatus @code) defaultHeaders . encode))
             (req^.env & userId .~ user)
-      withNoAuthRespond = runReaderT (handler <&>
-          responseLBS (createStatus @code) defaultHeaders . encode)
+      withNoAuthRespond = runReaderT (runAppM (handler <&>
+          responseLBS (createStatus @code) defaultHeaders . encode))
             (req^.env)
       defaultHeaders = [("Content-type", "application/json")]
 
 instance ( KnownMethod m, KnownNat code
           ) => HasServer (Verb m code 'Raw BL.ByteString) where
   type Server (Verb m code 'Raw BL.ByteString) =
-    ReaderT (Environment Handler) Handler BL.ByteString
-  route :: ReaderT (Environment Handler) Handler BL.ByteString
+    AppM (Environment Handler) Handler BL.ByteString
+  route :: AppM (Environment Handler) Handler BL.ByteString
         -> RoutingInfo -> Maybe (Handler Response)
   route _ (view method -> m) | m /= methodVal @m = Nothing
   route handler req@(view auth -> authLevel) = Just do
@@ -141,11 +141,11 @@ instance ( KnownMethod m, KnownNat code
       >>= maybe withNoAuthRespond withAuthRespond
     where
       withAuthRespond user =
-        runReaderT (handler <&>
-          responseLBS (createStatus @code) defaultHeaders)
+        runReaderT (runAppM (handler <&>
+          responseLBS (createStatus @code) defaultHeaders))
             (req^.env & userId .~ user)
-      withNoAuthRespond = runReaderT (handler <&>
-          responseLBS (createStatus @code) defaultHeaders)
+      withNoAuthRespond = runReaderT (runAppM (handler <&>
+          responseLBS (createStatus @code) defaultHeaders))
             (req^.env)
       defaultHeaders = [("Content-type", "application/json")]
 

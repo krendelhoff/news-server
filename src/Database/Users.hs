@@ -11,9 +11,10 @@ import Types.Common
 import Types.Users
 
 import qualified Types.Users as Users (ID)
+import qualified Types.Pictures as Pictures
 
 
-create :: Name -> Surname -> Login -> Maybe PictureID
+create :: Name -> Surname -> Login -> Maybe Pictures.ID
        -> Hash -> Transaction Users.ID
 create (toText -> name) (toText -> surname)
        (toText -> login) ((toUUID <$>) -> mAvatar)

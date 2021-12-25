@@ -9,7 +9,7 @@ module Server.Users where
 import Data.Aeson
 import Universum  hiding (get)
 
-import Application.Effects.Users (Users)
+import Application.Effects (PersistUser, WithUserId)
 import Common
 import DB                        (run)
 import Router
@@ -44,5 +44,5 @@ create (CreateForm name surname login mAvatar password) = do
 
 type GetAPI = Get Payload
 
-get :: (MonadReader env m, HasUserId env Users.ID, Users m) => m Payload
+get :: PersistUser env m => m Payload
 get = view userId >>= Users.get

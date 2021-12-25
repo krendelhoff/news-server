@@ -1,4 +1,5 @@
 {-# LANGUAGE AllowAmbiguousTypes        #-}
+{-# LANGUAGE BlockArguments             #-}
 {-# LANGUAGE DataKinds                  #-}
 {-# LANGUAGE DerivingStrategies         #-}
 {-# LANGUAGE FlexibleContexts           #-}
@@ -12,32 +13,32 @@
 {-# LANGUAGE StrictData                 #-}
 {-# LANGUAGE TemplateHaskell            #-}
 {-# LANGUAGE TypeApplications           #-}
-{-# LANGUAGE BlockArguments #-}
 module Logger ( Level(..)
               , Logger(..)
-              , log
               , Log
               , HasLogger(..)
+              , log
+              , mkLog
               , newLogger
               , level
               , Mode(..)
               , mkLoggingThread
               )where
 
-import Control.Concurrent (Chan, newChan, writeChan, readChan)
+import Control.Concurrent (Chan, newChan, readChan, writeChan)
 import Control.Lens.TH
-import TextShow           (TextShow (showt), fromText, showb)
+import TextShow           (TextShow(showt), fromText, showb)
 import TextShow.TH        (deriveTextShow)
 import Universum          hiding (toText)
 
 import Data.Coerce  (coerce)
-import Types.Common hiding (fromText)
+
+import Types.Lenses
 
 data Mode = NoLogging | Logging Level deriving (Eq , Show)
 
 data Level = ERROR | WARN | DEBUG | INFO deriving (Eq, Ord, Show)
 deriveTextShow ''Level
-makeKnown ''Level
 
 data Log = Log { _level  :: Level
                , _logMsg :: Text
@@ -47,14 +48,13 @@ makeLenses ''Log
 instance TextShow Log where
   showb (Log lvl msg) = "[" <> showb lvl <> "] " <> fromText msg
 
-mkLog :: forall lvl. KnownLevel lvl => Text -> Log
-mkLog = Log (levelVal @lvl)
+mkLog :: Level -> Text -> Log
+mkLog = Log
 
 newLogger :: IO Logger
 newLogger = coerce <$> newChan @Log
 
-newtype Logger = Logger { _logger :: Chan Log }
-makeFieldsNoPrefix ''Logger
+newtype Logger = Logger (Chan Log)
 
 mkLoggingThread :: Mode -> Logger -> IO ()
 mkLoggingThread (Logging upperLvl) logger = forever do
@@ -62,6 +62,12 @@ mkLoggingThread (Logging upperLvl) logger = forever do
   when (msg^.level <= upperLvl) do putStrLn @Text . showt $ msg
 mkLoggingThread NoLogging _ = pass
 
-log :: forall lvl env m. ( HasLogger env Logger, MonadReader env m, MonadIO m
-                         , KnownLevel lvl ) => Text -> m ()
-log msg = liftIO . flip writeChan (mkLog @lvl msg) . coerce =<< view logger
+newtype DummyLogger = DummyLogger { _logger :: Logger }
+makeFieldsNoPrefix ''DummyLogger
+
+instance HasLogger Logger Logger where
+  logger = id
+
+log :: ( HasLogger env Logger, MonadReader env m, MonadIO m
+        ) => Level -> Text -> m ()
+log lvl msg = liftIO . flip writeChan (mkLog lvl msg) . coerce =<< view logger

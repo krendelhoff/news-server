@@ -27,10 +27,16 @@ library
   exposed-modules:
       API
       Application
+      Application.Effects
+      Application.Effects.Logging
+      Application.Effects.Pictures
       Application.Effects.Users
+      Application.Logging
+      Application.Pictures
       Application.Users
       Common
       Database.Auth
+      Database.Pictures
       Database.Users
       DB
       Errors
@@ -46,6 +52,7 @@ library
       Types.Environment
       Types.Errors
       Types.Lenses
+      Types.Pictures
       Types.Router
       Types.TH
       Types.TH.Classes
