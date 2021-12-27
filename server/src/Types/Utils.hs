@@ -5,6 +5,6 @@ module Types.Utils where
 
 import Universum
 
-import Types.TH (newUTCTimeType)
+import Types.Infrastructure
 
 newUTCTimeType "CurrentTime"

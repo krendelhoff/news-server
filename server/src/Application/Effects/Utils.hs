@@ -12,8 +12,8 @@ import Crypto.Hash       (SHA256(SHA256), hashWith)
 import Data.Time         (addUTCTime)
 import Types.Auth
 import Types.Environment
-import Types.TH
 import Types.Users
+import Infrastructure
 import Types.Utils
 
 import qualified Application.Utils as Utils

@@ -12,8 +12,8 @@ import Control.Lens.TH (makeFieldsNoPrefix)
 import Hasql.Pool      (Pool)
 import Universum       hiding (Handle, get)
 
-import DB          (run)
 import Types.Users (Login, Name, Password, Payload, Surname)
+import Infrastructure
 
 import qualified Database.Users as DB
 import qualified Types.Pictures as Pictures

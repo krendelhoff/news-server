@@ -6,9 +6,6 @@ author:              "Savely Krendelhoff"
 maintainer:          "dklaptove@edu.hse.ru"
 copyright:           "2021 Savely Krendelhoff"
 
-extra-source-files:
-- README.org
-
 data-files:
 - migrations/*
 
@@ -56,6 +53,7 @@ dependencies:
 - tasty # cringe
 - tasty-hspec
 - tasty-hedgehog
+- server-lib
 
 default-extensions:
 - NoImplicitPrelude

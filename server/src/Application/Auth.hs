@@ -11,10 +11,10 @@ import Control.Monad.Except (throwError)
 import Hasql.Pool           (Pool)
 import Universum            hiding (Handle)
 
-import DB          (run)
 import Types.Auth
 import Types.Users (ExpirationDate, IsAdmin, Login, Password)
 import Types.Utils (CurrentTime)
+import Infrastructure
 
 import qualified Database.Auth as DB
 import qualified Types.Users   as Users

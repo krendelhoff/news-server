@@ -11,7 +11,7 @@ module Types.Auth where
 
 import Universum (Eq, Show)
 
-import Types.TH    (deriveWeb, newBoolType, newTextType)
+import Types.Infrastructure
 import Types.Users (ExpirationDate, IsAdmin, Login, Password)
 
 import qualified Types.Users as Users

@@ -20,10 +20,9 @@ import Application                   (HasAuth(auth), HasUtils)
 import Application.Auth
 import Application.Effects.CanReject
 import Application.Effects.Utils
-import Errors
 import Types.Auth
 import Types.Environment
-import Types.TH
+import Infrastructure
 import Types.Users
 import Utils                         (extractToken)
 

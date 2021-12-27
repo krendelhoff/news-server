@@ -1,0 +1,74 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.34.4.
+--
+-- see: https://github.com/sol/hpack
+
+name:           server-lib
+version:        0.1.0.0
+description:    Advanced server app library.
+homepage:       https://github.com/krendelhoff/server#readme
+bug-reports:    https://github.com/krendelhoff/server/issues
+author:         Savely Krendelhoff
+maintainer:     dklaptove@edu.hse.ru
+copyright:      2021 Savely Krendelhoff
+license:        BSD3
+build-type:     Simple
+
+source-repository head
+  type: git
+  location: https://github.com/krendelhoff/server
+
+library
+  exposed-modules:
+      DB
+      Errors
+      Infrastructure
+      Router
+      Types.DB
+      Types.Infrastructure
+      Types.Lenses
+      Types.Router
+      Types.TH
+      Types.TH.Classes
+  other-modules:
+      Paths_server_lib
+  hs-source-dirs:
+      src
+  default-extensions:
+      NoImplicitPrelude
+  build-depends:
+      aeson
+    , base
+    , bytestring
+    , cryptonite
+    , data-has
+    , deriving-aeson
+    , dhall
+    , exceptions
+    , file-embed
+    , filepath
+    , fmt
+    , hasql
+    , hasql-dynamic-statements
+    , hasql-migration
+    , hasql-pool
+    , hasql-th
+    , hasql-transaction
+    , http-api-data
+    , http-types
+    , lens
+    , mtl
+    , path-pieces
+    , raw-strings-qq
+    , template-haskell
+    , text
+    , text-show
+    , time
+    , universum
+    , uuid
+    , wai
+    , wai-extra
+    , warp
+    , word8
+  default-language: Haskell2010

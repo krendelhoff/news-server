@@ -14,14 +14,44 @@ maintainer:     dklaptove@edu.hse.ru
 copyright:      2021 Savely Krendelhoff
 license:        BSD3
 build-type:     Simple
-extra-source-files:
-    README.org
+data-files:
+    migrations/01-initial.sql
 
 source-repository head
   type: git
   location: https://github.com/krendelhoff/server
 
 library
+  exposed-modules:
+      API
+      Application
+      Application.Auth
+      Application.Effects
+      Application.Effects.Auth
+      Application.Effects.CanReject
+      Application.Effects.Logging
+      Application.Effects.Pictures
+      Application.Effects.Users
+      Application.Effects.Utils
+      Application.Logging
+      Application.Pictures
+      Application.Users
+      Application.Utils
+      Database.Auth
+      Database.Pictures
+      Database.Users
+      Logger
+      Migration
+      Server.Auth
+      Server.Pictures
+      Server.Users
+      Types.Auth
+      Types.Environment
+      Types.Logger
+      Types.Pictures
+      Types.Users
+      Types.Utils
+      Utils
   other-modules:
       Paths_server
   hs-source-dirs:
@@ -52,6 +82,7 @@ library
     , mtl
     , path-pieces
     , raw-strings-qq
+    , server-lib
     , tasty
     , tasty-hedgehog
     , tasty-hspec
@@ -101,6 +132,7 @@ executable server
     , path-pieces
     , raw-strings-qq
     , server
+    , server-lib
     , tasty
     , tasty-hedgehog
     , tasty-hspec
@@ -154,6 +186,7 @@ test-suite server-test
     , path-pieces
     , raw-strings-qq
     , server
+    , server-lib
     , tasty
     , tasty-hedgehog
     , tasty-hspec

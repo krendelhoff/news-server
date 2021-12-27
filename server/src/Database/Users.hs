@@ -6,8 +6,8 @@ import Hasql.TH          (singletonStatement)
 import Hasql.Transaction (Transaction, statement)
 import Universum         hiding (toText)
 
-import Types.TH
 import Types.Users
+import Infrastructure
 import Utils       (hash)
 
 import qualified Types.Pictures as Pictures

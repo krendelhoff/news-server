@@ -22,11 +22,7 @@ import Application
     , HasPersistUser(..)
     , HasUtils(..)
     )
-import Errors       (ServerError)
-import Router       (HasServer(ServerT))
-import Types.DB     (DbConfig, HasDbConfig(dbConfig))
-import Types.Lenses (HasPool(..))
-import Types.Router (Handler)
+import Infrastructure
 
 import qualified Application
 import qualified Application.Auth     as Auth

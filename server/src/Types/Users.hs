@@ -15,13 +15,7 @@ module Types.Users where
 import Control.Lens.TH (makeFields)
 import Universum
 
-import Types.TH
-    ( deriveWeb
-    , newBoolType
-    , newTextType
-    , newUTCTimeType
-    , newUUIDType
-    )
+import Types.Infrastructure
 
 import qualified Types.Pictures as Pictures
 

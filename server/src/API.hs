@@ -5,7 +5,7 @@ module API where
 import Universum
 
 import Types.Environment (Server)
-import Types.Router
+import Infrastructure
 
 import qualified Server.Auth     as Auth
 import qualified Server.Pictures as Pictures
