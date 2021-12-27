@@ -8,7 +8,7 @@ module Types.Pictures where
 
 import Universum
 
-import Types.TH (deriveWeb, newUUIDType)
+import Types.Infrastructure
 
 newUUIDType "ID"
 

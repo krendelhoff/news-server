@@ -18,7 +18,7 @@ import Hasql.Transaction.Sessions
 import Paths_server               (getDataDir)
 import Universum                  hiding (use)
 
-import Errors ()
+import Infrastructure
 
 applyMigrations :: Pool -> IO ()
 applyMigrations pool = do

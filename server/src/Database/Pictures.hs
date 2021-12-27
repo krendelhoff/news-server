@@ -7,7 +7,7 @@ import Hasql.Transaction (Transaction, statement)
 import Universum
 
 import Types.Pictures (ID)
-import Types.TH
+import Infrastructure
 
 import qualified Data.ByteString.Lazy as BL
 

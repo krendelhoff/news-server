@@ -9,8 +9,8 @@ import Universum         hiding (toText)
 import qualified Types.Users as Users
 
 import Types.Auth
-import Types.TH
 import Types.Users (ExpirationDate, IsAdmin, Login, Password)
+import Infrastructure
 import Types.Utils (CurrentTime)
 import Utils       (hash)
 

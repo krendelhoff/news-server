@@ -6,7 +6,7 @@ module Application.Effects.CanReject where
 import Universum
 
 import Control.Monad.Except (MonadError(throwError))
-import Errors               (ServerError)
+import Infrastructure
 
 class MonadError ServerError m => CanReject m where
   reject :: ServerError -> m a

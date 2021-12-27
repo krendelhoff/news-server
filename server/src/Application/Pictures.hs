@@ -10,8 +10,8 @@ import Universum       hiding (Handle)
 
 import qualified Data.ByteString.Lazy as BL
 
-import DB             (run)
 import Types.Pictures ( ID )
+import Infrastructure
 
 import qualified Database.Pictures as DB
 

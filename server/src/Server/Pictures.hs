@@ -6,7 +6,7 @@ module Server.Pictures where
 import Universum
 
 import Application.Effects
-import Types.Infrastructure
+import Infrastructure
 import Types.Environment
 import Types.Pictures
 
