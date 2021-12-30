@@ -24,7 +24,7 @@ new = return $ Handle
   , _lgetCurrentTime = Utils.getCurrentTime
   }
 
-close :: MonadIO m => Handle m -> IO ()
+close :: Handle m -> IO ()
 close = const pass
 
 withHandle :: (MonadMask m, MonadIO m) => (Handle m -> IO a) -> IO a

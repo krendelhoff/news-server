@@ -16,16 +16,11 @@ import Universum
 import qualified Hasql.Pool as HaSQL
 
 import Application
-    ( HasAuth(..)
-    , HasLogging(..)
-    , HasPersistPicture(..)
-    , HasPersistUser(..)
-    , HasUtils(..)
-    )
 import Infrastructure
 
 import qualified Application
 import qualified Application.Auth     as Auth
+import qualified Application.Authors  as Authors
 import qualified Application.Logging  as Logging
 import qualified Application.Pictures as Pictures
 import qualified Application.Users    as Users
@@ -71,3 +66,6 @@ instance Monad m => HasAuth (Environment m) (Auth.Handle m) where
 
 instance Monad m => HasUtils (Environment m) (Utils.Handle m) where
   utils = application . utils
+
+instance Monad m => HasPersistAuthor (Environment m) (Authors.Handle m) where
+  persistAuthor = application . persistAuthor

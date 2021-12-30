@@ -1,27 +1,23 @@
-{-# LANGUAGE BlockArguments    #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TypeApplications  #-}
+{-# LANGUAGE BlockArguments      #-}
+{-# LANGUAGE OverloadedStrings   #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TemplateHaskell     #-}
+{-# LANGUAGE TypeApplications    #-}
 module Main where
 
-import Control.Concurrent        (forkIO)
-import Data.Aeson
-import Dhall
-import Hasql.Connection          hiding (settings)
-import Network.Wai
-import Universum                 hiding (toText)
+import Control.Concurrent (forkIO)
+import Dhall              (Text, input)
+import Network.Wai        (Application)
+import Universum          hiding (toText)
 
 import qualified Hasql.Pool               as Pool
 import qualified Network.Wai.Handler.Warp as Warp
 
 import API               (API, server)
+import Infrastructure
 import Logger
 import Migration         (applyMigrations)
-import Router
-import DB
-import Types.DB
 import Types.Environment
-import Types.Router
-import Types.TH
 
 import qualified Application
 
@@ -32,6 +28,7 @@ serverSettings = Warp.setBeforeMainLoop
 
 mkApp :: Environment Handler -> Application
 mkApp env = serve @API (unlift @API (runApp env) server)
+
 
 main :: IO ()
 main = do

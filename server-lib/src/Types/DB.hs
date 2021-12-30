@@ -20,8 +20,8 @@ import Universum
 newtype HostName = HostName Text deriving stock (Eq, Show)
                                  deriving newtype (IsString)
 
-newtype Port = Port Word16 deriving stock (Eq, Show, Ord)
-                           deriving newtype (Num)
+newtype Port = Port Word16 deriving stock (Eq, Show)
+                           deriving newtype (Ord, Num)
 
 data DbConfig = DbConfig { _hostName   :: Text
                          , _port       :: Text

@@ -26,8 +26,9 @@ module Logger ( Level(..)
               )where
 
 import Control.Concurrent (newChan, readChan, writeChan)
-import Universum hiding (toText)
-import Data.Coerce (coerce)
+import Data.Coerce        (coerce)
+import TextShow           (showt)
+import Universum          hiding (toText)
 
 import Types.Logger
 
@@ -40,7 +41,7 @@ newLogger = coerce <$> newChan @Log
 mkLoggingThread :: Mode -> Logger -> IO ()
 mkLoggingThread (Logging upperLvl) logger = forever do
   msg <- readChan @Log (coerce logger)
-  when (msg^.level <= upperLvl) do putStrLn @Text . show $ msg
+  when (msg^.level <= upperLvl) do putStrLn . showt $ msg
 mkLoggingThread NoLogging _ = pass
 
 log :: ( HasLogger env Logger, MonadReader env m, MonadIO m

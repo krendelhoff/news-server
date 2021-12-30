@@ -20,10 +20,6 @@
 {-# LANGUAGE ViewPatterns         #-}
 module Router ( HasServer(..)
               , serve
-              , status400
-              , status403
-              , status401
-              , status500
               ) where
 
 import Control.Applicative  (Alternative((<|>)))
