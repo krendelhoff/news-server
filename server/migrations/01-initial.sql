@@ -33,12 +33,11 @@ CREATE TABLE authors
 CREATE TABLE categories
 ( id uuid PRIMARY KEY DEFAULT uuid_generate_v4()
 , title text NOT NULL
+, supercategory uuid
+, UNIQUE (title, supercategory)
+, CONSTRAINT cat_check CHECK ((supercategory = NULL::uuid) = (title = '/'::text))
 );
-
-CREATE TABLE categories_content
-( category uuid NOT NULL REFERENCES categories(id)
-, subcategory uuid NOT NULL REFERENCES categories(id)
-);
+INSERT INTO categories (title, supercategory) VALUES ('/', null);
 
 CREATE TABLE tags
 ( id uuid PRIMARY KEY DEFAULT uuid_generate_v4()
@@ -67,7 +66,8 @@ CREATE TABLE post_tags
 CREATE INDEX post_tags_index ON post_tags(post);
 
 CREATE TABLE comments
-( post uuid NOT NULL REFERENCES news(id)
+( id uuid PRIMARY KEY DEFAULT uuid_generate_v4()
+, post uuid NOT NULL REFERENCES news(id)
 , comment text NOT NULL
 );
 

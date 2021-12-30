@@ -9,6 +9,7 @@ module Application.Effects ( PersistUser
                            , UsesCurrentTime
                            , GenRandom
                            , CanReject(..)
+                           , PersistAuthor
                            ) where
 
 import Application.Effects.Auth
@@ -17,3 +18,4 @@ import Application.Effects.Pictures
 import Application.Effects.Users
 import Application.Effects.Utils
 import Application.Effects.CanReject
+import Application.Effects.Authors

@@ -33,7 +33,7 @@ new pl = return $ Handle
   , _lget = \uid -> runReaderT (run (DB.get uid)) pl
   }
 
-close :: (MonadThrow m, MonadIO m) => Handle m -> IO ()
+close :: Handle m -> IO ()
 close = const pass
 
 withHandle :: (MonadMask m, MonadIO m) => Pool -> (Handle m -> IO a) -> IO a

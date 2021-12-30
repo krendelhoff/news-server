@@ -10,6 +10,7 @@ module Application ( Handle
                    , HasLogging(..)
                    , HasAuth(..)
                    , HasUtils(..)
+                   , HasPersistAuthor(..)
                    , new
                    ) where
 
@@ -24,6 +25,7 @@ import qualified Application.Logging  as Logging
 import qualified Application.Pictures as Pictures
 import qualified Application.Users    as Users
 import qualified Application.Utils    as Utils
+import qualified Application.Authors  as Authors
 
 
 
@@ -32,6 +34,7 @@ data Handle m = Handle { _persistUser    :: Users.Handle m
                        , _logging        :: Logging.Handle m
                        , _auth           :: Auth.Handle m
                        , _utils          :: Utils.Handle m
+                       , _persistAuthor  :: Authors.Handle m
                        }
 makeFieldsNoPrefix ''Handle
 
@@ -42,6 +45,7 @@ new logger pl = do
   _logging        <- Logging.new logger
   _auth           <- Auth.new pl
   _utils          <- Utils.new
+  _persistAuthor  <- Authors.new pl
   return Handle{..}
 
 close :: (MonadThrow m, MonadIO m) => Handle m -> IO ()

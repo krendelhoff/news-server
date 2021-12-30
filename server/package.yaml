@@ -21,10 +21,12 @@ dependencies:
 - exceptions
 - mtl
 - text
+- vector
 - text-show
 - bytestring
 - aeson
 - template-haskell
+- th-lift
 - deriving-aeson
 - lens
 - filepath

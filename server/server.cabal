@@ -26,9 +26,13 @@ library
       API
       Application
       Application.Auth
+      Application.Authors
+      Application.Categories
       Application.Effects
       Application.Effects.Auth
+      Application.Effects.Authors
       Application.Effects.CanReject
+      Application.Effects.Categories
       Application.Effects.Logging
       Application.Effects.Pictures
       Application.Effects.Users
@@ -38,14 +42,20 @@ library
       Application.Users
       Application.Utils
       Database.Auth
+      Database.Authors
+      Database.Categories
       Database.Pictures
       Database.Users
       Logger
       Migration
       Server.Auth
+      Server.Authors
+      Server.Categories
       Server.Pictures
       Server.Users
       Types.Auth
+      Types.Authors
+      Types.Categories
       Types.Environment
       Types.Logger
       Types.Pictures
@@ -89,9 +99,11 @@ library
     , template-haskell
     , text
     , text-show
+    , th-lift
     , time
     , universum
     , uuid
+    , vector
     , wai
     , wai-extra
     , warp
@@ -139,9 +151,11 @@ executable server
     , template-haskell
     , text
     , text-show
+    , th-lift
     , time
     , universum
     , uuid
+    , vector
     , wai
     , wai-extra
     , warp
@@ -193,9 +207,11 @@ test-suite server-test
     , template-haskell
     , text
     , text-show
+    , th-lift
     , time
     , universum
     , uuid
+    , vector
     , wai
     , wai-extra
     , warp

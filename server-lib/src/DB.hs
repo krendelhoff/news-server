@@ -4,11 +4,23 @@
 {-# LANGUAGE LambdaCase           #-}
 {-# LANGUAGE OverloadedStrings    #-}
 {-# LANGUAGE TypeSynonymInstances #-}
-module DB where
+module DB ( Transaction
+          , singletonStatement
+          , vectorStatement
+          , maybeStatement
+          , rowsAffectedStatement
+          , resultlessStatement
+          , statement
+          , mkConnStr
+          , run
+          , withPool
+          , withConn
+          )where
 
 import Hasql.Connection           (Connection, acquire, release)
 import Hasql.Pool                 (Pool)
-import Hasql.Transaction          (Transaction)
+import Hasql.TH
+import Hasql.Transaction          (Transaction, statement)
 import Hasql.Transaction.Sessions
     ( IsolationLevel(Serializable)
     , Mode(Write)
@@ -18,8 +30,8 @@ import Universum
 
 import qualified Hasql.Pool as Pool
 
+import Errors       ()
 import Types.DB
-import Errors ()
 import Types.Lenses (HasPool(..))
 
 
