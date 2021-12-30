@@ -25,3 +25,8 @@ data PayloadRecursive = PayloadRecursive
   , payloadRecursiveParent :: Maybe PayloadRecursive
   }
 deriveWeb "payloadRecursive" ''PayloadRecursive
+
+data CreateForm = CreateForm { createFormTitle :: Title
+                             , createFormParent :: Maybe ID
+                             }
+deriveWeb "createForm" ''CreateForm

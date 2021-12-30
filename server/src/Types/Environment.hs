@@ -18,13 +18,13 @@ import qualified Hasql.Pool as HaSQL
 import Application
 import Infrastructure
 
-import qualified Application
-import qualified Application.Auth     as Auth
-import qualified Application.Authors  as Authors
-import qualified Application.Logging  as Logging
-import qualified Application.Pictures as Pictures
-import qualified Application.Users    as Users
-import qualified Application.Utils    as Utils
+import qualified Application.Auth       as Auth
+import qualified Application.Authors    as Authors
+import qualified Application.Categories as Categories
+import qualified Application.Logging    as Logging
+import qualified Application.Pictures   as Pictures
+import qualified Application.Users      as Users
+import qualified Application.Utils      as Utils
 
 
 data Environment m = Environment
@@ -69,3 +69,6 @@ instance Monad m => HasUtils (Environment m) (Utils.Handle m) where
 
 instance Monad m => HasPersistAuthor (Environment m) (Authors.Handle m) where
   persistAuthor = application . persistAuthor
+
+instance Monad m => HasPersistCategories (Environment m) (Categories.Handle m) where
+  persistCategories = application . persistCategories

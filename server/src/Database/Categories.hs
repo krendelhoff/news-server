@@ -27,6 +27,11 @@ get (toUUID -> cid) = (encodePayload <$>) <$>
   WHERE id = $1::uuid
                                     |]
 
+remove :: ID -> Transaction NoContent
+remove (toUUID -> cid) = NoContent <$ statement cid [resultlessStatement|
+  DELETE FROM categories WHERE id=$1::uuid
+                                                    |]
+
 isItUnique :: Text -> Maybe UUID -> Transaction Bool
 isItUnique title mSupercat = statement (title, mSupercat)
   [singletonStatement|
@@ -49,8 +54,10 @@ create (toText -> title) ((toUUID <$>) -> mSupercat) = do
         RETURNING id::uuid
       |]
 
-rename :: ID -> Maybe ID -> Title -> Transaction (Maybe Payload)
-rename (toUUID -> cid) ((toUUID <$>) -> mSupercat) (toText -> title) = do
+
+rename :: ID -> Title -> Transaction (Maybe Payload)
+rename cat@(toUUID -> cid) (toText -> title) = do
+  Payload _ _ ((toUUID <$>) -> mSupercat) <- getUnsafe cat
   isItUnique title mSupercat >>= \case
     False -> return Nothing
     True  -> Just . encodePayload <$>
@@ -87,19 +94,18 @@ getUnsafe (toUUID -> cid) = encodePayload <$>
                 |]
 
 getRecursive :: ID -> Transaction (Maybe PayloadRecursive)
-getRecursive cat =
-  get cat >>= \case
-    Nothing -> return Nothing
-    Just (Payload cid _ _) -> do
-      cats <- getPathToRoot cid
-      let base = getUnsafe (V.last cats) <&>
-            \(Payload ct title _) -> PayloadRecursive ct title Nothing
-      Just <$>
-        foldr (\x accM -> do
-                  acc <- accM
-                  Payload ct title _ <- getUnsafe x
-                  return $ PayloadRecursive ct title $ Just acc
-              ) base (V.init cats)
+getRecursive = get >=> \case
+  Nothing -> return Nothing
+  Just (Payload cid _ _) -> do
+    cats <- getPathToRoot cid
+    let base = getUnsafe (V.last cats) <&>
+          \(Payload ct title _) -> PayloadRecursive ct title Nothing
+    Just <$>
+      foldr (\x accM -> do
+                acc <- accM
+                Payload ct title _ <- getUnsafe x
+                return $ PayloadRecursive ct title $ Just acc
+            ) base (V.init cats)
 
 getAllChilds :: ID -> Transaction (Vector ID)
 getAllChilds (toUUID -> cid) = coerce <$>
@@ -117,5 +123,16 @@ getAllChilds (toUUID -> cid) = coerce <$>
 
 rebase :: ID -- ^ What
        -> ID -- ^ Where
-       -> Transaction (Maybe PayloadRecursive)
-rebase (toUUID -> whatC) (toUUID -> whereC) = undefined
+       -> Transaction (Maybe Payload)
+rebase whatC whereC = do
+  childs <- getAllChilds whatC
+  if whereC `V.elem` childs
+  then return Nothing
+  else Just . encodePayload <$> updateSupercategory whatC whereC
+  where
+    updateSupercategory (toUUID -> cat) (toUUID -> supercat) =
+      statement (cat, supercat) [singletonStatement|
+        UPDATE categories SET supercategory=$2::uuid
+        WHERE id=$1::uuid
+        RETURNING id::uuid,title::text,supercategory::uuid?
+                                |]

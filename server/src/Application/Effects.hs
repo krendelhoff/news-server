@@ -10,6 +10,8 @@ module Application.Effects ( PersistUser
                            , GenRandom
                            , CanReject(..)
                            , PersistAuthor
+                           , AcquireCategory
+                           , PersistCategory
                            ) where
 
 import Application.Effects.Auth
@@ -19,3 +21,4 @@ import Application.Effects.Users
 import Application.Effects.Utils
 import Application.Effects.CanReject
 import Application.Effects.Authors
+import Application.Effects.Categories

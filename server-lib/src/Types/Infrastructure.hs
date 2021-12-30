@@ -7,6 +7,7 @@ module Types.Infrastructure ( module Types.Lenses
                             , status403
                             , status401
                             , status500
+                            , status404
                             , StdMethod(..)
                             , UUID
                             ) where
