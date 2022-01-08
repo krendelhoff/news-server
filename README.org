@@ -3,4 +3,6 @@
  - [X] Asynchronous logger
  - [X] Servant-like type level routing implementation
  - [X] Using TH in favor of Type Driven Development
- - [X] Effect tracking system with capability to mock out impure actions
+ - [ ] Effect tracking system with capability to mock out impure actions
+   Tried to achieve this using three layer cake + handle pattern, it worked but
+   produced too much boilerplate so i switched to polysemy
