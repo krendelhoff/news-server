@@ -11,10 +11,8 @@ import Hasql.Pool         (Pool)
 import Network.HTTP.Types
 import Universum
 
-
 import qualified Application.Auth as Auth
 import qualified Types.Users      as Users
-
 
 import Application                   (HasAuth(auth), HasUtils)
 import Application.Auth
@@ -27,12 +25,6 @@ import Types.Users
 import Utils                         (extractToken)
 
 import qualified Application.Utils as Utils
-
-class CanReject m => AuthenticateUser m where
-  user :: m Users.ID
-
-class CanReject m => AuthenticateAdmin m where
-  whoami :: m Users.ID
 
 class Monad m => Auth m where
   login        :: Login -> Password -> m (Maybe LoginInfo)

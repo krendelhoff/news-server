@@ -20,21 +20,15 @@ import qualified Types.Pictures as Pictures
 import qualified Types.Users    as Users
 
 
-data Handle m = Handle { _lcreate :: Name -> Surname -> Login
-                                  -> Maybe Pictures.ID -> Password -> m Users.ID
-                       , _lget    :: Users.ID -> m Payload
+data Handle m = Handle { _create :: Name -> Surname -> Login
+                                 -> Maybe Pictures.ID -> Password -> m Users.ID
+                       , _get    :: Users.ID -> m Payload
                        }
 makeFieldsNoPrefix ''Handle
 
 new :: (MonadThrow m, MonadIO m) => Pool -> IO (Handle m)
 new pl = return $ Handle
-  { _lcreate = \name surname login mPicture passwd ->
+  { _create = \name surname login mPicture passwd ->
       runReaderT (run (DB.create name surname login mPicture passwd)) pl
-  , _lget = \uid -> runReaderT (run (DB.get uid)) pl
+  , _get = \uid -> runReaderT (run (DB.get uid)) pl
   }
-
-close :: Handle m -> IO ()
-close = const pass
-
-withHandle :: (MonadMask m, MonadIO m) => Pool -> (Handle m -> IO a) -> IO a
-withHandle pl = bracket (new pl) close

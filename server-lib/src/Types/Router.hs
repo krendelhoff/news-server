@@ -22,24 +22,39 @@ import Universum
 
 import qualified Data.ByteString.Lazy as BL
 
-import Errors           (ServerError)
+import Errors           (ServerError, AuthError)
 import Types.TH.Classes (makeKnown, makeKnown', stripModifier)
 
 newtype Handler a = Handler
-  { runHandler :: ReaderT (Maybe ByteString) (ExceptT ServerError IO) a }
+  { runHandler :: ExceptT ServerError IO a }
   deriving newtype ( Functor, Applicative, Monad, MonadError ServerError
                    , MonadThrow, MonadCatch, MonadMask, MonadIO
-                   , MonadReader (Maybe ByteString)
                    )
 
-data RoutingInfo = RoutingInfo { _path     :: [Text]
-                               , _method   :: ByteString
-                               , _queryStr :: Query
-                               , _headers  :: RequestHeaders
-                               , _body     :: BL.ByteString
-                               , _state    :: Maybe ServerError
-                               }
-makeLenses ''RoutingInfo
+data Auth = NoAuth | User | Admin
+
+instance Semigroup Auth where
+  NoAuth <> x  = x
+  x <> NoAuth  = x
+  Admin <> _   = Admin
+  _ <> Admin   = Admin
+  User <> User = User
+
+instance Monoid Auth where
+  mempty = NoAuth
+
+data RoutingEnv = RoutingEnv { _path     :: [Text]
+                             , _method   :: ByteString
+                             , _queryStr :: Query
+                             , _headers  :: RequestHeaders
+                             , _body     :: BL.ByteString
+                             , _auth     :: Auth
+                             , _authF    :: Maybe ( ByteString
+                                                 -> IO (Either AuthError Auth)
+                                                  )
+                             , _state    :: Maybe ServerError
+                             }
+makeLenses ''RoutingEnv
 
 data SMethod (m :: StdMethod) where
   SPut    :: SMethod 'PUT

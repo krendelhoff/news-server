@@ -47,6 +47,8 @@ dependencies:
 - http-types
 - http-api-data
 - path-pieces
+- validation
+- tagged
 - cryptonite
 - time
 - word8

@@ -12,20 +12,13 @@ import Types.Utils (CurrentTime)
 
 import qualified Utils
 
-
-data Handle m = Handle { _lgenRandomBytes :: Int -> m ByteString
-                       , _lgetCurrentTime :: m CurrentTime
+data Handle m = Handle { _genRandomBytes :: Int -> m ByteString
+                       , _getCurrentTime :: m CurrentTime
                        }
 makeFieldsNoPrefix ''Handle
 
 new :: MonadIO m => IO (Handle m)
 new = return $ Handle
-  { _lgenRandomBytes = Utils.getRandomBytes
-  , _lgetCurrentTime = Utils.getCurrentTime
+  { _genRandomBytes = Utils.getRandomBytes
+  , _getCurrentTime = Utils.getCurrentTime
   }
-
-close :: Handle m -> IO ()
-close = const pass
-
-withHandle :: (MonadMask m, MonadIO m) => (Handle m -> IO a) -> IO a
-withHandle = bracket new close

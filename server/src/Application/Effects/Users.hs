@@ -18,7 +18,7 @@ import qualified Application.Users as Users
 import qualified Types.Pictures    as Pictures
 import qualified Types.Users       as Users
 
-class AuthenticateUser m => AcquireUser m where
+class Monad m => AcquireUser m where
   get    :: m Payload
 
 class Monad m => PersistUser m where
@@ -29,12 +29,12 @@ instance (Monad m, HasPersistUser env (Users.Handle m)
           ) => PersistUser (AppM env m) where
   create name surname login mPicture pHash = do
     usersHandle <- view persistUser
-    lift $ view lcreate usersHandle name surname login mPicture pHash
+    lift $ view Users.create usersHandle name surname login mPicture pHash
 
 instance (Monad m, HasPersistUser env (Users.Handle m)
-          , AuthenticateUser (AppM env m)
+          , MonadReader Users.ID m
            ) => AcquireUser (AppM env m) where
   get = do
     usersHandle <- view persistUser
-    uid <- user
-    lift $ view lget usersHandle uid
+    uid <- lift ask
+    lift $ view Users.get usersHandle uid

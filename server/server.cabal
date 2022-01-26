@@ -28,11 +28,13 @@ library
       Application.Auth
       Application.Authors
       Application.Categories
+      Application.Drafts
       Application.Effects
       Application.Effects.Auth
       Application.Effects.Authors
       Application.Effects.CanReject
       Application.Effects.Categories
+      Application.Effects.Drafts
       Application.Effects.Logging
       Application.Effects.Pictures
       Application.Effects.Users
@@ -44,6 +46,7 @@ library
       Database.Auth
       Database.Authors
       Database.Categories
+      Database.Drafts
       Database.Pictures
       Database.Users
       Logger
@@ -51,11 +54,13 @@ library
       Server.Auth
       Server.Authors
       Server.Categories
+      Server.Drafts
       Server.Pictures
       Server.Users
       Types.Auth
       Types.Authors
       Types.Categories
+      Types.Drafts
       Types.Environment
       Types.Logger
       Types.Pictures
@@ -93,6 +98,7 @@ library
     , path-pieces
     , raw-strings-qq
     , server-lib
+    , tagged
     , tasty
     , tasty-hedgehog
     , tasty-hspec
@@ -103,6 +109,7 @@ library
     , time
     , universum
     , uuid
+    , validation
     , vector
     , wai
     , wai-extra
@@ -145,6 +152,7 @@ executable server
     , raw-strings-qq
     , server
     , server-lib
+    , tagged
     , tasty
     , tasty-hedgehog
     , tasty-hspec
@@ -155,6 +163,7 @@ executable server
     , time
     , universum
     , uuid
+    , validation
     , vector
     , wai
     , wai-extra
@@ -201,6 +210,7 @@ test-suite server-test
     , raw-strings-qq
     , server
     , server-lib
+    , tagged
     , tasty
     , tasty-hedgehog
     , tasty-hspec
@@ -211,6 +221,7 @@ test-suite server-test
     , time
     , universum
     , uuid
+    , validation
     , vector
     , wai
     , wai-extra

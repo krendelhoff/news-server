@@ -7,50 +7,44 @@ module Application.Effects.Categories where
 import Universum
 
 import Application
-import Application.Categories   as Categories
 import Application.Effects.Auth
 import Infrastructure           hiding (user)
 import Types.Categories
 import Types.Environment
 
-class AuthenticateUser m => AcquireCategory m where
+import qualified Application.Categories   as Categories
+
+class Monad m => AcquireCategory m where
   get          :: ID -> m (Maybe Payload)
   getRecursive :: ID -> m (Maybe PayloadRecursive)
 
-class (AcquireCategory m, AuthenticateAdmin m) => PersistCategory m where
+class AcquireCategory m => PersistCategory m where
   create :: Title -> Maybe ID -> m (Maybe Payload)
   remove :: ID -> m NoContent
   rename :: ID -> Title -> m (Maybe Payload)
   rebase :: ID -> ID -> m (Maybe Payload)
 
 instance (HasPersistCategories env (Categories.Handle m), Monad m
-          , AuthenticateUser (AppM env m)
-           ) => AcquireCategory (AppM env m) where
+          ) => AcquireCategory (AppM env m) where
   get cid = do
-    !uid <- user
     catHandle <- view persistCategories
-    lift $ view lget catHandle cid
+    lift $ view get catHandle cid
   getRecursive cid = do
-    !uid <- user
     catHandle <- view persistCategories
-    lift $ view lgetRecursive catHandle cid
+    lift $ view Categories.getRecursive catHandle cid
 
-instance (HasPersistCategories env (Categories.Handle m), AuthenticateAdmin (AppM env m)
+instance (HasPersistCategories env (Categories.Handle m)
           , Monad m, AcquireCategory (AppM env m)
            ) => PersistCategory (AppM env m) where
   create title mCid = do
-    !uid <- whoami
     catHandle <- view persistCategories
-    lift $ view lcreate catHandle title mCid
+    lift $ view Categories.create catHandle title mCid
   remove cid = do
-    !uid <- whoami
     catHandle <- view persistCategories
-    lift $ view lremove catHandle cid
+    lift $ view Categories.remove catHandle cid
   rename cid title = do
-    !uid <- whoami
     catHandle <- view persistCategories
-    lift $ view lrename catHandle cid title
+    lift $ view Categories.rename catHandle cid title
   rebase whatC whereC = do
-    !uid <- whoami
     catHandle <- view persistCategories
-    lift $ view lrebase catHandle whatC whereC
+    lift $ view Categories.rebase catHandle whatC whereC
