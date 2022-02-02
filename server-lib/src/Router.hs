@@ -74,6 +74,11 @@ handleAuth NoAuth _ = return NoAuth
 handleAuth _ Nothing = return NoAuth
 handleAuth _ _ = undefined
 
+fac n = fac' n id
+  where
+    fac' 0 c = c 1
+    fac' n c = fac' (n - 1) \x -> c (n * x)
+
 -- type instance Server (QueryParams s a :> r) = Vector a -> Server r
 class HasServer layout where
   type ServerT (layout :: Type) (m :: Type -> Type) :: Type

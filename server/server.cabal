@@ -1,6 +1,6 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.34.4.
+-- This file has been generated from package.yaml by hpack version 0.34.5.
 --
 -- see: https://github.com/sol/hpack
 
@@ -28,13 +28,11 @@ library
       Application.Auth
       Application.Authors
       Application.Categories
-      Application.Drafts
       Application.Effects
       Application.Effects.Auth
       Application.Effects.Authors
       Application.Effects.CanReject
       Application.Effects.Categories
-      Application.Effects.Drafts
       Application.Effects.Logging
       Application.Effects.Pictures
       Application.Effects.Users
@@ -46,7 +44,6 @@ library
       Database.Auth
       Database.Authors
       Database.Categories
-      Database.Drafts
       Database.Pictures
       Database.Users
       Logger
@@ -54,13 +51,11 @@ library
       Server.Auth
       Server.Authors
       Server.Categories
-      Server.Drafts
       Server.Pictures
       Server.Users
       Types.Auth
       Types.Authors
       Types.Categories
-      Types.Drafts
       Types.Environment
       Types.Logger
       Types.Pictures
@@ -98,6 +93,7 @@ library
     , path-pieces
     , raw-strings-qq
     , server-lib
+    , stm
     , tagged
     , tasty
     , tasty-hedgehog
@@ -152,6 +148,7 @@ executable server
     , raw-strings-qq
     , server
     , server-lib
+    , stm
     , tagged
     , tasty
     , tasty-hedgehog
@@ -210,6 +207,7 @@ test-suite server-test
     , raw-strings-qq
     , server
     , server-lib
+    , stm
     , tagged
     , tasty
     , tasty-hedgehog
