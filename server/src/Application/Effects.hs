@@ -2,10 +2,10 @@ module Application.Effects ( PersistUser
                            , AcquireUser
                            , PersistPicture
                            , Logging(..)
-                           , Auth
-                           , AuthenticateUser
-                           , AuthenticateAdmin
-                           , AuthenticateWeak
+--                           , Auth
+--                           , AuthenticateUser
+--                           , AuthenticateAdmin
+--                           , AuthenticateWeak
                            , UsesCurrentTime
                            , GenRandom
                            , CanReject(..)

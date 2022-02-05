@@ -20,16 +20,16 @@ import qualified Application.Effects.Users as Users
 import qualified Application.Effects.Utils as Utils
 
 
-type API = "users" :> (CreateAPI :<|> GetAPI)
+type API = "users" :> (CreateAPI)-- :<|> GetAPI)
 
 server :: Server API
-server = create :<|> get
+server = create-- :<|> get
 
 type CreateAPI = "create" :> ReqBody 'JSON CreateForm :> Post AuthPayload
 
-create :: (PersistUser m, UsesCurrentTime m, GenRandom m, Auth m, CanReject m
+create :: (PersistUser m, UsesCurrentTime m, GenRandom m, CanReject m
            ) => CreateForm -> m AuthPayload
-create (CreateForm name surname login mAvatar password) = do
+create (CreateForm name surname login mAvatar password) = undefined {- do
   Auth.login login password >>= \case
     Nothing -> do
       tokens <- Utils.generateTokens
@@ -37,9 +37,9 @@ create (CreateForm name surname login mAvatar password) = do
       Users.create name surname login mAvatar password
         >>= Auth.issueToken expirationDate (fromBool False) tokens
     _       -> reject (mkError status403 "User already exists")
-
+-}
 
 type GetAPI = Get Payload
 
 get :: AcquireUser m => m Payload
-get = Users.get
+get = undefined --Users.get

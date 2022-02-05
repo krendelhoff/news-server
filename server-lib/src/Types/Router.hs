@@ -31,29 +31,33 @@ newtype Handler a = Handler
                    , MonadThrow, MonadCatch, MonadMask, MonadIO
                    )
 
+type Path = [Text]
+
 data Auth = NoAuth | User | Admin
 
-instance Semigroup Auth where
-  NoAuth <> x  = x
-  x <> NoAuth  = x
-  Admin <> _   = Admin
-  _ <> Admin   = Admin
-  User <> User = User
+-- instance Semigroup Auth where
+--   NoAuth <> x  = x
+--   x <> NoAuth  = x
+--   Admin <> _   = Admin
+--   _ <> Admin   = Admin
+--   User <> User = User
+--
+-- instance Monoid Auth where
+--   mempty = NoAuth
 
-instance Monoid Auth where
-  mempty = NoAuth
+-- >>> l = [Auth, User, Admin]
+-- >>> res = l >>= \x1 -> l >>= \x2 -> l >>= \x3 -> return (((x1 <> x2) <> x3) == (x1 <> (x2 <> x3)))
+-- >>> all res
+-- Data constructor not in scope: Auth :: Auth
 
-data RoutingEnv = RoutingEnv { _path     :: [Text]
-                             , _method   :: ByteString
-                             , _queryStr :: Query
-                             , _headers  :: RequestHeaders
-                             , _body     :: BL.ByteString
-                             , _auth     :: Auth
-                             , _authF    :: Maybe ( ByteString
-                                                 -> IO (Either AuthError Auth)
-                                                  )
-                             , _state    :: Maybe ServerError
-                             }
+data RoutingEnv a = RoutingEnv { _path          :: [Text]
+                               , _method        :: StdMethod
+                               , _queryStr      :: Query
+                               , _headers       :: RequestHeaders
+                               , _body          :: BL.ByteString
+                               , _authLevel     :: Auth
+                               , _authenticate  :: Auth -> ByteString -> IO (Either AuthError a)
+                               }
 makeLenses ''RoutingEnv
 
 data SMethod (m :: StdMethod) where

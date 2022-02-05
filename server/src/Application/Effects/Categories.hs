@@ -28,7 +28,7 @@ instance (HasPersistCategories env (Categories.Handle m), Monad m
           ) => AcquireCategory (AppM env m) where
   get cid = do
     catHandle <- view persistCategories
-    lift $ view get catHandle cid
+    lift $ view Categories.get catHandle cid
   getRecursive cid = do
     catHandle <- view persistCategories
     lift $ view Categories.getRecursive catHandle cid

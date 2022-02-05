@@ -7,13 +7,12 @@ import Universum
 
 
 import Application       (HasUtils(utils))
-import Application.Utils
 import Crypto.Hash       (SHA256(SHA256), hashWith)
 import Data.Time         (addUTCTime)
+import Infrastructure
 import Types.Auth
 import Types.Environment
 import Types.Users
-import Infrastructure
 import Types.Utils
 
 import qualified Application.Utils as Utils
@@ -39,10 +38,10 @@ instance (HasUtils env (Utils.Handle m), Monad m
           ) => UsesCurrentTime (AppM env m) where
   getCurrentTime = do
     utilsHandle <- view utils
-    lift $ view lgetCurrentTime utilsHandle
+    lift $ view Utils.getCurrentTime utilsHandle
 
 instance (HasUtils env (Utils.Handle m), Monad m
           ) => GenRandom (AppM env m) where
   genRandomBytes n = do
     utilsHandle <- view utils
-    lift $ view lgenRandomBytes utilsHandle n
+    lift $ view Utils.genRandomBytes utilsHandle n

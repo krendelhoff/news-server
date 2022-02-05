@@ -8,8 +8,6 @@ module Application.Effects.Users where
 import Universum
 
 import Application              (HasPersistUser(..))
-import Application.Effects.Auth (AuthenticateUser(..))
-import Application.Users        (HasLcreate(lcreate), HasLget(lget))
 import Types.Environment        (AppM)
 import Types.Router             (Handler)
 import Types.Users              (Login, Name, Password, Payload, Surname)

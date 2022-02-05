@@ -10,7 +10,7 @@ module Errors where
 import Data.Aeson         (ToJSON, encode)
 import Hasql.Connection   (ConnectionError)
 import Hasql.Migration    (MigrationError)
-import Network.HTTP.Types (Status, status401, status404, status500, status403)
+import Network.HTTP.Types (Status, status401, status404, status500, status403, status400)
 import Network.Wai        (Response, responseLBS)
 import Universum
 
@@ -22,7 +22,7 @@ import qualified Hasql.Pool as Pool
 data ServerError = ServerError Status Message
   deriving (Eq, Show, Exception)
 
-data AuthError = Boob deriving (Show, Exception)
+data AuthError = NotFound | TokenExpired deriving (Show, Exception)
 
 toResponse :: ServerError -> Response
 toResponse (ServerError st m) = responseLBS st [] (encode m)
@@ -32,6 +32,9 @@ mkError = ServerError
 
 err404 :: ServerError
 err404 = mkError status404 "Not found"
+
+err400 :: ServerError
+err400 = mkError status400 "Bad request"
 
 err500 :: ServerError
 err500 = mkError status500 "Internal Error"
