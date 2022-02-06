@@ -18,6 +18,8 @@ import qualified Hasql.Pool as HaSQL
 import Application
 import Infrastructure
 
+import qualified Types.Users as Users
+
 import qualified Application.Auth       as Auth
 import qualified Application.Authors    as Authors
 import qualified Application.Categories as Categories
@@ -47,7 +49,12 @@ deriving newtype instance MonadError ServerError m =>
 
 type App = AppM (Environment Handler) Handler
 
-type Server api = ServerT api App
+newtype AuthenticatedApp a = AuthenticatedApp { runAuthApp :: ReaderT Users.ID App a }
+  deriving newtype ( Functor, Applicative, Monad, MonadReader Users.ID
+                   , MonadError ServerError, MonadIO, MonadThrow
+                   )
+
+--type Server api = ServerT api App VERY BAD DECISION
 
 runApp :: r -> AppM r m a -> m a
 runApp env = flip runReaderT env . runAppM

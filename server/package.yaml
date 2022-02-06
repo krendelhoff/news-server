@@ -25,6 +25,7 @@ dependencies:
 - text-show
 - bytestring
 - aeson
+- async
 - template-haskell
 - th-lift
 - deriving-aeson

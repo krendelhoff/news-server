@@ -11,13 +11,32 @@ import Universum hiding (toText)
 import Application.Effects
 import Infrastructure
 import Types.Auth
-import Types.Environment   (Server)
+import Types.Users
+import Types.Environment
 import Types.Logger        (Level(INFO))
 import Utils               (hash)
 
 import qualified Application.Effects.Auth  as Auth
 import qualified Application.Effects.Utils as Utils
 
+server :: ServerT API App
+server = create
+
+type CreateAPI = "create" :> ReqBody 'JSON CreateForm :> Post AuthPayload
+
+type API = "auth" :> CreateAPI
+--create :: (PersistUser m, UsesCurrentTime m, GenRandom m, CanReject m
+--           ) => CreateForm -> m AuthPayload
+create :: CreateForm -> App AuthPayload
+create (CreateForm name surname login mAvatar password) = undefined {- do
+  Auth.login login password >>= \case
+    Nothing -> do
+      tokens <- Utils.generateTokens
+      expirationDate <- Utils.getExpirationDate
+      Users.create name surname login mAvatar password
+        >>= Auth.issueToken expirationDate (fromBool False) tokens
+    _       -> reject (mkError status403 "User already exists")
+-}
 --
 --type API = "auth" :> (LoginAPI :<|> RefreshAPI)
 --

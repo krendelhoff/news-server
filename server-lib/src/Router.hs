@@ -30,7 +30,7 @@ import GHC.TypeLits         (KnownNat, KnownSymbol, Symbol, natVal, symbolVal)
 import Hasql.Pool           (Pool)
 import Network.HTTP.Types
 import Network.Wai
-import Universum            hiding (natVal, state)
+import Universum            hiding (Handle, natVal, state)
 import Web.HttpApiData      (FromHttpApiData(parseHeader, parseUrlPiece))
 
 import Errors
@@ -188,6 +188,46 @@ instance (FromHttpApiData a, HasServer r, KnownSymbol id
     Left _  -> False
     Right _ -> walk @r (xs, m)
   walk _ = False
+
+instance (HasServer r, FromAuth a) => HasServer (AuthUser a :> r) where
+  type ServerT (AuthUser a :> r) m = a -> ServerT r m
+  route :: (MonadIO m, MonadError ServerError m) => (a -> ServerT r m) -> RoutingEnv a -> Maybe (m Response)
+  route handlerF req@(lookup "Authentication" . view headers -> Just rawToken) =
+    case req^.authHandle.extractToken $ rawToken of
+      Nothing    -> throwError err403TokenInvalid
+      Just token -> route (liftIO (req^.authHandle.auth $ token) >>= handlerF) req
+  route _ _ = throwError err401
+  unlift f g = unlift @r f . g
+  walk = undefined
+
+serve :: forall layout a. (HasServer layout, FromAuth a) =>
+  Handle a -> Server layout -> Application
+serve auth s (requestMethod -> m) respond
+  | Left err <- parseMethod m = respond $ toResponse err400 -- FIXME bad error, non specific
+serve auth s req@(requestMethod -> m) respond
+  | Right m <- parseMethod m
+  , True <- walk @layout (pathInfo req, m) = do
+  bodyStr <- strictRequestBody req
+  let reqInfo = RoutingEnv { _path = pathInfo req
+                           , _method = m
+                           , _queryStr = queryString req
+                           , _headers = requestHeaders req
+                           , _body = bodyStr
+                           , _authHandle = auth
+                           }
+  case route @layout s reqInfo of
+    Nothing -> respond $ toResponse err404
+    Just handler -> do
+      let safeHandler = handler `catch` \(e :: SomeException) ->
+            return $ toResponse (mkError status500 (fromString (show e)))
+      runExceptT (runHandler safeHandler)
+        >>= either (respond . toResponse) respond
+serve _ _ _ respond = respond $ toResponse err404
+
+-- теперь мы знаем есть ли эндпоинт
+-- то есть если не парсится рекбади - то это бэдреквест
+-- эту информацию (где ошибка) можно нести в том типе, который в ExceptT
+-- и делать хорошие сообщения об ошибках
 {-
  serve :: forall layout. HasServer layout => Server layout -> Application
  serve s (requestMethod -> m) respond     | Left err <- parseMethod m =
@@ -213,32 +253,3 @@ instance (FromHttpApiData a, HasServer r, KnownSymbol id
          >>= either (respond . toResponse) respond
  serve _ _ respond = respond $ toResponse err404
 -}
-serve :: forall layout a. (HasServer layout, FromAuth a) =>
-  (Auth -> ByteString -> IO (Either AuthError a)) -> Server layout -> Application
-serve auth s (requestMethod -> m) respond
-  | Left err <- parseMethod m = respond $ toResponse err400 -- FIXME bad error, non specific
-serve auth s req@(requestMethod -> m) respond
-  | Right m <- parseMethod m
-  , True <- walk @layout (pathInfo req, m) = do
-  bodyStr <- strictRequestBody req
-  let reqInfo = RoutingEnv { _path = pathInfo req
-                           , _method = m
-                           , _queryStr = queryString req
-                           , _headers = requestHeaders req
-                           , _body = bodyStr
-                           , _authLevel = NoAuth
-                           , _authenticate = auth
-                           }
-  case route @layout s reqInfo of
-    Nothing -> respond $ toResponse err404
-    Just handler -> do
-      let safeHandler = handler `catch` \(e :: SomeException) ->
-            return $ toResponse (mkError status500 (fromString (show e)))
-      runExceptT (runHandler safeHandler)
-        >>= either (respond . toResponse) respond
-serve _ _ _ respond = respond $ toResponse err404
-
--- теперь мы знаем есть ли эндпоинт
--- то есть если не парсится рекбади - то это бэдреквест
--- эту информацию (где ошибка) можно нести в том типе, который в ExceptT
--- и делать хорошие сообщения об ошибках

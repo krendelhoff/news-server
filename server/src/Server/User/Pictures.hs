@@ -1,7 +1,7 @@
 {-# LANGUAGE DataKinds        #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeOperators    #-}
-module Server.Pictures where
+module Server.User.Pictures where
 
 import Universum
 
@@ -14,11 +14,11 @@ import qualified Application.Effects.Pictures as Pictures
 
 import qualified Data.ByteString.Lazy as BL
 
-server :: Server API
-server = persist
-
-type API = "pictures" :> ReqBody 'Raw BL.ByteString
-         :> Post Payload
-
-persist :: PersistPicture m => BL.ByteString -> m Payload
-persist = (Payload <$>) . Pictures.persist
+--server :: Server API
+--server = persist
+--
+--type API = "pictures" :> ReqBody 'Raw BL.ByteString
+--         :> Post Payload
+--
+--persist :: PersistPicture m => BL.ByteString -> m Payload
+--persist = (Payload <$>) . Pictures.persist

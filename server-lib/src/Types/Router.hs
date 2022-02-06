@@ -18,11 +18,11 @@ import Control.Monad.Except
 import Data.Aeson           (ToJSON(toJSON), object)
 import GHC.TypeLits         (Nat, Symbol)
 import Network.HTTP.Types   (Query, RequestHeaders, StdMethod(..))
-import Universum
+import Universum            hiding (Handle)
 
 import qualified Data.ByteString.Lazy as BL
 
-import Errors           (ServerError, AuthError)
+import Errors           (ServerError)
 import Types.TH.Classes (makeKnown, makeKnown', stripModifier)
 
 newtype Handler a = Handler
@@ -33,7 +33,10 @@ newtype Handler a = Handler
 
 type Path = [Text]
 
-data Auth = NoAuth | User | Admin
+data AuthUser (a :: Type)
+data AuthAdmin (a :: Type)
+
+data AuthResult a = NotFound | TokenExpired | AuthSuccess a
 
 -- instance Semigroup Auth where
 --   NoAuth <> x  = x
@@ -50,13 +53,17 @@ data Auth = NoAuth | User | Admin
 -- >>> all res
 -- Data constructor not in scope: Auth :: Auth
 
-data RoutingEnv a = RoutingEnv { _path          :: [Text]
-                               , _method        :: StdMethod
-                               , _queryStr      :: Query
-                               , _headers       :: RequestHeaders
-                               , _body          :: BL.ByteString
-                               , _authLevel     :: Auth
-                               , _authenticate  :: Auth -> ByteString -> IO (Either AuthError a)
+data Handle a = Handle { _extractToken :: ByteString -> Maybe ByteString
+                       , _auth         :: ByteString -> IO (AuthResult a)
+                       }
+makeLenses ''Handle
+
+data RoutingEnv a = RoutingEnv { _path       :: [Text]
+                               , _method     :: StdMethod
+                               , _queryStr   :: Query
+                               , _headers    :: RequestHeaders
+                               , _body       :: BL.ByteString
+                               , _authHandle :: Handle a
                                }
 makeLenses ''RoutingEnv
 

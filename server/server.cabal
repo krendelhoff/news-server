@@ -23,7 +23,6 @@ source-repository head
 
 library
   exposed-modules:
-      API
       Application
       Application.Auth
       Application.Authors
@@ -48,11 +47,13 @@ library
       Database.Users
       Logger
       Migration
+      Server
+      Server.Admin.Authors
       Server.Auth
-      Server.Authors
-      Server.Categories
-      Server.Pictures
-      Server.Users
+      Server.Errors
+      Server.User.Categories
+      Server.User.Pictures
+      Server.User.Users
       Types.Auth
       Types.Authors
       Types.Categories
@@ -70,6 +71,7 @@ library
       NoImplicitPrelude
   build-depends:
       aeson
+    , async
     , base
     , bytestring
     , cryptonite
@@ -124,6 +126,7 @@ executable server
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       aeson
+    , async
     , base
     , bytestring
     , cryptonite
@@ -183,6 +186,7 @@ test-suite server-test
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       aeson
+    , async
     , base
     , bytestring
     , cryptonite

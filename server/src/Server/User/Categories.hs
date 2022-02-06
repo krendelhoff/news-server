@@ -3,15 +3,19 @@
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeOperators       #-}
-module Server.Categories where
+module Server.User.Categories where
 
 import Universum hiding (get, toText)
 
-import           Application.Effects
+import Application.Effects
+import Infrastructure
+import Types.Categories
+import Types.Environment
+import Server.Errors
+
 import qualified Application.Effects.Categories as Categories
-import           Infrastructure
-import           Types.Categories
-import           Types.Environment
+
+type API = "categories" :> GetAPI
 
 --type API = "categories" :> (GetAPI :<|> CreateAPI
 --                                   :<|> RemoveAPI
@@ -22,12 +26,14 @@ import           Types.Environment
 --             :<|> remove
 --             :<|> update
 --
---type GetAPI = Capture "category_id" ID :> Get Payload
---
---notFoundError = mkError status404 "Category not found"
---
+server :: ServerT API AuthenticatedApp
+server = undefined -- get
+
+type GetAPI = Capture "category_id" ID :> Get Payload
+
 --get :: AcquireCategory m => ID -> m Payload
---get = Categories.get >=> maybe (reject notFoundError) return
+get :: ID -> AuthenticatedApp Payload
+get = undefined -- Categories.get >=> maybe (reject categoryNotFoundError) return
 --
 --
 --type CreateAPI = "create" :> ReqBody 'JSON CreateForm

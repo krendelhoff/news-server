@@ -16,13 +16,10 @@ import Universum
 
 import qualified Hasql.Pool as Pool
 
-
 -- HTTP
 
 data ServerError = ServerError Status Message
   deriving (Eq, Show, Exception)
-
-data AuthError = NotFound | TokenExpired deriving (Show, Exception)
 
 toResponse :: ServerError -> Response
 toResponse (ServerError st m) = responseLBS st [] (encode m)
