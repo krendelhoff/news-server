@@ -23,10 +23,10 @@ import Types.Auth     (AccessToken)
 import Types.Users    (Hash, Password)
 import Types.Utils    (CurrentTime)
 
-extractToken :: ByteString -> Either TokenError AccessToken
-extractToken (((fromText . T.strip <$>) . decodeUtf8' <$>)
+parseToken :: ByteString -> Either TokenError AccessToken
+parseToken (((fromText . T.strip <$>) . decodeUtf8' <$>)
              . B.break isSpace -> ("Bearer", Right token)) = Right token
-extractToken _ = Left BadToken
+parseToken _ = Left BadToken
 
 getCurrentTime :: MonadIO m => m CurrentTime
 getCurrentTime = liftIO Time.getCurrentTime <&> fromUTCTime

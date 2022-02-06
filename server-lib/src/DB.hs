@@ -11,7 +11,7 @@ module DB ( Transaction
           , rowsAffectedStatement
           , resultlessStatement
           , statement
-          , mkConnStr
+ --         , mkConnStr
           , run
           , withPool
           , withConn
@@ -35,12 +35,12 @@ import Types.DB
 import Types.Lenses (HasPool(..))
 
 
-mkConnStr :: DbConfig -> ConnectionString
-mkConnStr conf = encodeUtf8 $ "host=" <> conf^.hostName <> " "
-                           <> "port=" <> conf^.port <> " "
-                           <> "user=" <> conf^.user <> " "
-                           <> "dbname=" <> conf^.dbname <> " "
-                           <> "password=" <> conf^.dbPassword
+--mkConnStr :: DbConfig -> ConnectionString
+--mkConnStr conf = encodeUtf8 $ "host=" <> conf^.hostName <> " "
+--                           <> "port=" <> conf^.port <> " "
+--                           <> "user=" <> conf^.user <> " "
+--                           <> "dbname=" <> conf^.dbname <> " "
+--                           <> "password=" <> conf^.dbPassword
 
 
 withConn :: ConnectionString -> (Connection -> IO ()) -> IO ()

@@ -1,6 +1,6 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.34.4.
+-- This file has been generated from package.yaml by hpack version 0.34.5.
 --
 -- see: https://github.com/sol/hpack
 
@@ -42,25 +42,17 @@ library
     , base
     , bytestring
     , cryptonite
-    , data-has
     , deriving-aeson
     , dhall
     , exceptions
-    , file-embed
     , filepath
-    , fmt
     , hasql
-    , hasql-dynamic-statements
-    , hasql-migration
     , hasql-pool
-    , hasql-th
-    , hasql-transaction
     , http-api-data
     , http-types
     , lens
     , mtl
     , path-pieces
-    , raw-strings-qq
     , template-haskell
     , text
     , text-show
@@ -68,7 +60,6 @@ library
     , universum
     , uuid
     , wai
-    , wai-extra
     , warp
     , word8
   default-language: Haskell2010

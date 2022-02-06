@@ -14,7 +14,6 @@ import Infrastructure
 import Types.Auth          (AuthPayload)
 import Types.Users         (CreateForm(CreateForm), Payload)
 
-import qualified Application.Effects.Auth  as Auth
 import qualified Application.Effects.Users as Users
 import qualified Application.Effects.Utils as Utils
 

@@ -25,10 +25,10 @@ module Logger ( Level(..)
               , mkLoggingThread
               )where
 
-import Control.Concurrent (newChan, readChan, writeChan)
-import Data.Coerce        (coerce)
-import TextShow           (showt)
-import Universum          hiding (toText)
+import Control.Concurrent.STM.TQueue (newTQueueIO, readTQueue, writeTQueue)
+import Data.Coerce                   (coerce)
+import TextShow                      (showt)
+import Universum                     hiding (toText)
 
 import Types.Logger
 
@@ -36,14 +36,14 @@ mkLog :: Level -> Text -> Log
 mkLog = Log
 
 newLogger :: IO Logger
-newLogger = coerce <$> newChan @Log
+newLogger = coerce <$> newTQueueIO @Log
 
 mkLoggingThread :: Mode -> Logger -> IO ()
 mkLoggingThread (Logging upperLvl) logger = forever do
-  msg <- readChan @Log (coerce logger)
+  msg <- atomically do readTQueue @Log (coerce logger)
   when (msg^.level <= upperLvl) do putStrLn . showt $ msg
 mkLoggingThread NoLogging _ = pass
 
 log :: ( HasLogger env Logger, MonadReader env m, MonadIO m
         ) => Level -> Text -> m ()
-log lvl msg = liftIO . flip writeChan (mkLog lvl msg) . coerce =<< view logger
+log lvl msg = liftIO . atomically . flip writeTQueue (mkLog lvl msg) . coerce =<< view logger

@@ -1,24 +1,25 @@
-{-# LANGUAGE AllowAmbiguousTypes  #-}
-{-# LANGUAGE BlockArguments       #-}
-{-# LANGUAGE DataKinds            #-}
-{-# LANGUAGE DerivingVia          #-}
-{-# LANGUAGE FlexibleContexts     #-}
-{-# LANGUAGE FlexibleInstances    #-}
-{-# LANGUAGE GADTs                #-}
-{-# LANGUAGE InstanceSigs         #-}
-{-# LANGUAGE OverloadedStrings    #-}
-{-# LANGUAGE PolyKinds            #-}
-{-# LANGUAGE RankNTypes           #-}
-{-# LANGUAGE ScopedTypeVariables  #-}
-{-# LANGUAGE TypeApplications     #-}
-{-# LANGUAGE TypeFamilies         #-}
-{-# LANGUAGE TypeOperators        #-}
-{-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE ViewPatterns         #-}
+{-# LANGUAGE AllowAmbiguousTypes   #-}
+{-# LANGUAGE BlockArguments        #-}
+{-# LANGUAGE ConstraintKinds       #-}
+{-# LANGUAGE DataKinds             #-}
+{-# LANGUAGE DerivingVia           #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE GADTs                 #-}
+{-# LANGUAGE InstanceSigs          #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE PolyKinds             #-}
+{-# LANGUAGE RankNTypes            #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE TypeApplications      #-}
+{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE TypeOperators         #-}
+{-# LANGUAGE UndecidableInstances  #-}
+{-# LANGUAGE ViewPatterns          #-}
 module Router ( HasServer(..)
               , serve
+              , FromAuth(fromRawAuth)
               ) where
 
 import Control.Applicative  (Alternative((<|>)))
@@ -42,7 +43,7 @@ import qualified Data.Text            as T
 
 --class (MonadIO m, MonadError ServerError m, FromAuth a) => RoutingConstraint m a a
 --instance (MonadIO m, MonadError ServerError m, FromAuth a) => RoutingConstraint m a a
-type RoutingConstraint m a = (MonadIO m, MonadError ServerError m, FromAuth a)
+--type RoutingConstraint m a = (MonadIO m, MonadError ServerError m, FromAuth a)
 
 type family Server (layout :: Type) where
   Server layout = ServerT layout Handler
@@ -58,6 +59,7 @@ type family IsThere (endpoint :: Type) (api :: Type) :: Constraint where
   IsThere e (QueryParam f a :> r) = IsThere e r
   IsThere (Capture d a :> e) (Capture f a :> r) = IsThere e r
   IsThere e e = ()
+  -- don't know how to use it without constructing singleton paths
 
 --fac :: (Eq p, Num p) => p -> p
 --fac n = fac' n id
@@ -65,23 +67,31 @@ type family IsThere (endpoint :: Type) (api :: Type) :: Constraint where
 --    fac' 0 c = c 1
 --    fac' n c = fac' (n - 1) \x -> c (n * x)
 
+class FromAuth a where
+  fromRawAuth :: RawAuthData -> a
+
 -- type instance Server (QueryParams s a :> r) = Vector a -> Server r
 class HasServer layout where
   type ServerT (layout :: Type) (m :: Type -> Type) :: Type
-  route  :: RoutingConstraint m a => ServerT layout m -> RoutingEnv a -> Maybe (m Response)
+  route  :: Server layout -> RoutingEnv -> Maybe (Handler Response)
   unlift :: (forall x. m x -> n x) -> ServerT layout m -> ServerT layout n
   walk :: (Path, StdMethod) -> Bool
 
-class FromAuth a where
-  from :: (ByteString, ByteString, ByteString) -> a
+createStatus :: forall code. KnownNat code => Status
+createStatus = case natVal (Proxy @code) of
+  200 -> status200
+  204 -> status204                                     --FIXME|
+  n   -> mkStatus (fromInteger (natVal (Proxy @code))) "Success"
+
+defaultHeaders :: [(HeaderName, ByteString)]
+defaultHeaders = [("Content-type", "application/json; charset = utf-8")]
 
 instance ( KnownMethod t, KnownNat code, ToJSON a
           ) => HasServer (Verb t code 'JSON a) where
   type ServerT (Verb t code 'JSON a) m = m a
-  route :: RoutingConstraint m b => m a -> RoutingEnv b -> Maybe (m Response)
-  route _ (view path -> p)   | not . null $ p                        = Nothing
-  route handler req@(view authenticate -> auth) = Just do
---    handleAuth (req^.auth) howToAuth
+  route :: Handler a -> RoutingEnv -> Maybe (Handler Response)
+  route _ (view path -> p)   | not . null $ p = Nothing
+  route handler _ = Just do
     handler <&> responseLBS (createStatus @code) defaultHeaders . encode
   unlift :: (forall x. m x -> n x) -> m a -> n a
   unlift f = f
@@ -92,7 +102,7 @@ instance ( KnownMethod t, KnownNat code, ToJSON a
 instance ( KnownMethod t, KnownNat code
           ) => HasServer (Verb t code 'Raw BL.ByteString) where
   type ServerT (Verb t code 'Raw BL.ByteString) m = m BL.ByteString
-  route :: RoutingConstraint m a => m BL.ByteString -> RoutingEnv a -> Maybe (m Response)
+  route :: Handler BL.ByteString -> RoutingEnv -> Maybe (Handler Response)
   route handler _ = Just do
     handler <&> responseLBS (createStatus @code) defaultHeaders
   unlift :: (forall x. m x -> n x) -> m BL.ByteString
@@ -104,9 +114,9 @@ instance ( KnownMethod t, KnownNat code
 
 instance (HasServer r, FromJSON a) => HasServer (ReqBody 'JSON a :> r) where
   type ServerT (ReqBody 'JSON a :> r) m = a -> ServerT r m
-  route :: RoutingConstraint m b => (a -> ServerT r m) -> RoutingEnv b -> Maybe (m Response)
+  route :: (a -> Server r) -> RoutingEnv -> Maybe (Handler Response)
   route f req@(view body -> bodyStr) = case decode @a bodyStr of
-    Nothing -> Nothing
+    Nothing -> Just $ throwError err400BadReqBody
     Just a  -> route @r (f a) req
   unlift :: (forall x. m x -> n x) -> (a -> ServerT r m)
          -> (a -> ServerT r n)
@@ -116,7 +126,7 @@ instance (HasServer r, FromJSON a) => HasServer (ReqBody 'JSON a :> r) where
 
 instance HasServer r => HasServer (ReqBody 'Raw BL.ByteString :> r) where
   type ServerT (ReqBody 'Raw BL.ByteString :> r) m = BL.ByteString -> ServerT r m
-  route :: RoutingConstraint m a => (BL.ByteString -> ServerT r m) -> RoutingEnv a -> Maybe (m Response)
+  route :: (BL.ByteString -> Server r) -> RoutingEnv -> Maybe (Handler Response)
   route f req@(view body -> bodyStr) = route @r (f bodyStr) req
   unlift :: (forall x. m x -> n x) -> (BL.ByteString -> ServerT r m)
          -> (BL.ByteString -> ServerT r n)
@@ -124,23 +134,14 @@ instance HasServer r => HasServer (ReqBody 'Raw BL.ByteString :> r) where
   walk :: (Path, StdMethod) -> Bool
   walk = walk @r
 
-createStatus :: forall code. KnownNat code => Status
-createStatus = case natVal (Proxy @code) of
-  200 -> status200
-  204 -> status204                                     --FIXME|
-  n   -> mkStatus (fromInteger (natVal (Proxy @code))) "Success"
-
-defaultHeaders :: [(HeaderName, ByteString)]
-defaultHeaders = [("Content-type", "application/json")]
-
 instance (KnownSymbol s, FromHttpApiData a, HasServer r
           ) => HasServer (QueryParam s a :> r) where
   type ServerT (QueryParam s a :> r) m = Maybe a -> ServerT r m
-  route :: RoutingConstraint m b => (Maybe a -> ServerT r m) -> RoutingEnv b -> Maybe (m Response)
+  route :: (Maybe a -> Server r) -> RoutingEnv -> Maybe (Handler Response)
   route f req@(view queryStr -> params) =
     case lookup (encodeUtf8 (symbolVal (Proxy @s))) params of
       Just (Just x) -> case parseHeader x of
-        Left err -> Nothing
+        Left err -> Just $ throwError $ err400BadQueryParam $ symbolVal $ Proxy @s
         Right a  -> route @r (f $ Just a) req
       _ -> route @r (f Nothing) req
   unlift :: (forall x. m x -> n x) -> (Maybe a -> ServerT r m)
@@ -151,7 +152,7 @@ instance (KnownSymbol s, FromHttpApiData a, HasServer r
 
 instance (HasServer a, HasServer b) => HasServer (a :<|> b) where
   type ServerT (a :<|> b) m = ServerT a m :<|> ServerT b m
-  route :: RoutingConstraint m c => ServerT a m :<|> ServerT b m -> RoutingEnv c -> Maybe (m Response)
+  route :: Server a :<|> Server b -> RoutingEnv -> Maybe (Handler Response)
   route (handler1 :<|> handler2) req = route @a handler1 req
                                    <|> route @b handler2 req
   unlift :: (forall x. m x -> n x) -> (ServerT a m :<|> ServerT b m)
@@ -162,7 +163,7 @@ instance (HasServer a, HasServer b) => HasServer (a :<|> b) where
 
 instance (KnownSymbol s, HasServer r) => HasServer ((s :: Symbol) :> r) where
   type ServerT ((s :: Symbol) :> r) m = ServerT r m
-  route :: RoutingConstraint m a => ServerT r m -> RoutingEnv a -> Maybe (m Response)
+  route :: Server r -> RoutingEnv -> Maybe (Handler Response)
   route h req@(view path -> (x:xs)) | symbolVal (Proxy @s) == T.unpack x =
                                       route @r h (req & path .~ xs)
   route _ _ = Nothing
@@ -175,9 +176,9 @@ instance (KnownSymbol s, HasServer r) => HasServer ((s :: Symbol) :> r) where
 instance (FromHttpApiData a, HasServer r, KnownSymbol id
           ) => HasServer (Capture id a :> r) where
   type ServerT (Capture id a :> r) m = a -> ServerT r m
-  route :: RoutingConstraint m c => (a -> ServerT r m) -> RoutingEnv c -> Maybe (m Response)
+  route :: (a -> Server r) -> RoutingEnv -> Maybe (Handler Response)
   route handler req@(view path -> (x:xs)) = case parseUrlPiece x of
-    Left err -> Nothing
+    Left err -> Just $ throwError $ err400BadCapture $ symbolVal $ Proxy @id
     Right a  -> route @r (handler a) (req & path .~ xs)
   route _ _ = Nothing
   unlift :: (forall x. m x -> n x) -> (a -> ServerT r m)
@@ -189,67 +190,62 @@ instance (FromHttpApiData a, HasServer r, KnownSymbol id
     Right _ -> walk @r (xs, m)
   walk _ = False
 
-instance (HasServer r, FromAuth a) => HasServer (AuthUser a :> r) where
-  type ServerT (AuthUser a :> r) m = a -> ServerT r m
-  route :: (MonadIO m, MonadError ServerError m) => (a -> ServerT r m) -> RoutingEnv a -> Maybe (m Response)
+instance (FromAuth a, HasServer r) => HasServer (AuthUser a :> r) where
+  type ServerT (AuthUser a :> r) m = AuthResult a -> ServerT r m
+  route :: (AuthResult a -> Server r) -> RoutingEnv -> Maybe (Handler Response)
   route handlerF req@(lookup "Authentication" . view headers -> Just rawToken) =
-    case req^.authHandle.extractToken $ rawToken of
-      Nothing    -> throwError err403TokenInvalid
-      Just token -> route (liftIO (req^.authHandle.auth $ token) >>= handlerF) req
-  route _ _ = throwError err401
+    case _extractToken (req^.handle) rawToken of
+      Nothing    -> Just $ throwError err403TokenInvalid
+      Just token -> Just do
+        authResult <- liftIO $ _authenticate (req^.handle) token
+        case route @r (handlerF $ fromRawAuth <$> authResult) req of
+          Nothing -> throwError err500
+          Just hR -> hR
+  route _ _ = Just $ throwError err401
+  unlift :: (forall x. m x -> n x) -> (AuthResult a -> ServerT r m) -> (AuthResult a -> ServerT r n)
   unlift f g = unlift @r f . g
-  walk = undefined
+  walk :: (Path, StdMethod) -> Bool
+  walk = walk @r
 
-serve :: forall layout a. (HasServer layout, FromAuth a) =>
-  Handle a -> Server layout -> Application
-serve auth s (requestMethod -> m) respond
-  | Left err <- parseMethod m = respond $ toResponse err400 -- FIXME bad error, non specific
-serve auth s req@(requestMethod -> m) respond
+instance (FromAuth a, HasServer r) => HasServer (AuthAdmin a :> r) where
+  type ServerT (AuthAdmin a :> r) m = AuthResult a -> ServerT r m
+  route :: (AuthResult a -> Server r) -> RoutingEnv -> Maybe (Handler Response)
+  route handlerF req@(lookup "Authentication" . view headers -> Just rawToken) =
+    case _extractToken (req^.handle) rawToken of
+      Nothing    -> Just $ throwError err403TokenInvalid
+      Just token -> Just do
+        authResult <- liftIO $ _authenticate (req^.handle) token
+        case route @r (handlerF $ fromRawAuth <$> authResult) req of
+          Nothing -> throwError err500
+          Just hR -> hR
+  route _ _ = Just $ throwError err404 -- that's why we need extra AuthAdmin
+                                       -- not err401 but err404
+  unlift :: (forall x. m x -> n x) -> (AuthResult a -> ServerT r m) -> (AuthResult a -> ServerT r n)
+  unlift f g = unlift @r f . g
+  walk :: (Path, StdMethod) -> Bool
+  walk = walk @r
+
+serve :: forall layout. HasServer layout =>
+  ServingHandle -> Server layout -> Application
+serve h s (requestMethod -> m) respond
+  | Left err <- parseMethod m = respond $ toResponse err400BadMethod
+serve h s req@(requestMethod -> m) respond
   | Right m <- parseMethod m
   , True <- walk @layout (pathInfo req, m) = do
   bodyStr <- strictRequestBody req
-  let reqInfo = RoutingEnv { _path = pathInfo req
-                           , _method = m
+  let reqInfo = RoutingEnv { _path     = pathInfo req
+                           , _method   = m
                            , _queryStr = queryString req
-                           , _headers = requestHeaders req
-                           , _body = bodyStr
-                           , _authHandle = auth
+                           , _headers  = requestHeaders req
+                           , _body     = bodyStr
+                           , _handle   = h
                            }
   case route @layout s reqInfo of
     Nothing -> respond $ toResponse err404
     Just handler -> do
-      let safeHandler = handler `catch` \(e :: SomeException) ->
-            return $ toResponse (mkError status500 (fromString (show e)))
+      let safeHandler = handler `catch` \(e :: SomeException) -> do
+            liftIO $ _log h $ fromString $ show e
+            return $ toResponse err500
       runExceptT (runHandler safeHandler)
         >>= either (respond . toResponse) respond
 serve _ _ _ respond = respond $ toResponse err404
-
--- теперь мы знаем есть ли эндпоинт
--- то есть если не парсится рекбади - то это бэдреквест
--- эту информацию (где ошибка) можно нести в том типе, который в ExceptT
--- и делать хорошие сообщения об ошибках
-{-
- serve :: forall layout. HasServer layout => Server layout -> Application
- serve s (requestMethod -> m) respond     | Left err <- parseMethod m =
-   respond $ toResponse err400 -- FIXME bad error, non specific
- serve s req@(requestMethod -> m) respond | Right m <- parseMethod m
-                                          , True <- walk @layout (pathInfo req, m) = do
-   bodyStr <- strictRequestBody req
-   let reqInfo = RoutingEnv a { _path = pathInfo req
-                            , _method = m
-                            , _queryStr = queryString req
-                            , _headers = requestHeaders req
-                            , _body = bodyStr
-                            , _auth = NoAuth
-                            , _authF = Nothing
-                            , _state = Nothing
-                            }
-   case route @layout s reqInfo of
-     Nothing -> respond $ toResponse err404
-     Just handler -> do
-       let safeHandler = handler `catch` \(e :: SomeException) ->
-             return $ toResponse (mkError status500 (fromString (show e)))
-       runExceptT (runHandler safeHandler)
-         >>= either (respond . toResponse) respond
- serve _ _ respond = respond $ toResponse err404
--}

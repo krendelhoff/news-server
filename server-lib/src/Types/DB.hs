@@ -10,34 +10,43 @@
 {-# LANGUAGE TypeSynonymInstances       #-}
 module Types.DB where
 
-import Control.Lens.TH (makeClassy)
-import Dhall           (Decoder, Generic, Text, field, record, strictText)
+import Control.Lens.TH (makeFieldsNoPrefix)
+import Dhall
+    ( Decoder
+    , FromDhall
+    , Generic
+    , Text
+    , field
+    , record
+    , strictText
+    )
 import Universum
 
+import Data.Time (NominalDiffTime)
+import Types.TH
 
+newIntType "PoolSize"
+newIntType "ConnTimeout"
+newTextType "HostName"
+newTextType "DbUser"
+newTextType "DbName"
+newTextType "DbPassword"
 
--- TODO TH CREATION
-newtype HostName = HostName Text deriving stock (Eq, Show)
-                                 deriving newtype (IsString)
+newtype Port = Port Word16 deriving stock (Eq, Show, Generic)
+                           deriving newtype (Ord, Num, FromDhall)
 
-newtype Port = Port Word16 deriving stock (Eq, Show)
-                           deriving newtype (Ord, Num)
+data DbPoolSettings = DbPoolSettings
+  { _size    :: PoolSize
+  , _timeout :: ConnTimeout
+  } deriving (Generic, Eq, Show, FromDhall)
+makeFieldsNoPrefix ''DbPoolSettings
 
-data DbConfig = DbConfig { _hostName   :: Text
-                         , _port       :: Text
-                         , _user       :: Text
-                         , _dbname     :: Text
-                         , _dbPassword :: Text
-                         } deriving (Generic, Eq, Show)
-makeClassy ''DbConfig
-
-dbConfigDecoder :: Decoder DbConfig
-dbConfigDecoder = record
-                    ( DbConfig <$> field "hostName" strictText
-                               <*> field "port" strictText
-                               <*> field "user" strictText
-                               <*> field "dbname" strictText
-                               <*> field "password" strictText
-                    )
+data DbConfig = DbConfig { _hostName   :: HostName
+                         , _dbPort     :: Port
+                         , _user       :: DbUser
+                         , _dbName     :: DbName
+                         , _dbPassword :: DbPassword
+                         } deriving (Generic, Eq, Show, FromDhall)
+makeFieldsNoPrefix ''DbConfig
 
 type ConnectionString = ByteString

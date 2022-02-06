@@ -9,7 +9,8 @@ import Universum hiding (get)
 import Application.Effects
 import Infrastructure
 import Types.Authors       (ID, Payload, UpdateForm(UpdateForm))
-import Server.Errors
+import Types.Auth
+import Types.Environment   (AuthenticatedApp)
 
 import qualified Application.Effects.Authors as Authors
 import qualified Types.Users                 as Users
@@ -34,12 +35,14 @@ import qualified Types.Users                 as Users
 --update aid (UpdateForm desc) = Authors.update aid desc
 --
 
---server :: ServerT API AuthenticatedApp
---server = get
+server :: ServerT API (AuthenticatedApp '[Admin, User])
+server = get
 --
---type API = "authors" :> GetAPI
---type GetAPI = Capture "author_id" ID :> Get Payload
+type API = "authors" :> GetAPI
+type GetAPI = Capture "author_id" ID :> Get Payload
 --
+get :: ID -> AuthenticatedApp '[Admin, User] Payload
+get = undefined
 --get :: PersistAuthor m => ID -> m Payload
 --get = Authors.get >=> \case
 --  Nothing      -> reject authorNotFoundError

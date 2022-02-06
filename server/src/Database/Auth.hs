@@ -1,5 +1,6 @@
 {-# LANGUAGE QuasiQuotes  #-}
 {-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE LambdaCase #-}
 module Database.Auth where
 
 import Hasql.TH
@@ -14,12 +15,31 @@ import Infrastructure
 import Types.Utils (CurrentTime)
 import Utils       (hash)
 
+getByRefreshToken :: RefreshToken -> Transaction (AuthResult RawAuthData)
+getByRefreshToken (toText -> mToken) =
+  statement mToken [maybeStatement|
+    SELECT user_id::uuid, token::text, refresh_token::text, privileged::bool
+    FROM auth WHERE refresh_token = $1::text
+                   |] >>= \case
+                       Nothing -> return NotFound
+                       Just x  -> return $ AuthSuccess $ decodeRawAuthData x
+ where
+   decodeRawAuthData (u, t, rT, iA) = RawAuthData u t rT iA
+
+getByAccessToken :: CurrentTime -> AccessToken -> Transaction (AuthResult RawAuthData)
+getByAccessToken curTime mToken = do
+  getTokenInfo mToken curTime >>= \case
+    Nothing                       -> return NotFound
+    Just (TokenInfo _ _ (toBool -> True) _ _) -> return TokenExpired
+    Just (TokenInfo token isAdmin _ refreshToken user) ->
+      return $ AuthSuccess $ RawAuthData (toUUID user) (toText token) (toText refreshToken) (toBool isAdmin)
+
 getTokenInfo :: AccessToken -> CurrentTime -> Transaction (Maybe TokenInfo)
 getTokenInfo (toText -> mToken) (toUTCTime -> curTime) =
   (encodeTokenInfo <$>) <$> statement mToken
   [maybeStatement| SELECT token::text, privileged::bool, expires::timestamptz
                         , refresh_token::text, user_id::uuid
-                   FROM auth WHERE token=$1::text |]
+                   FROM auth WHERE token = $1::text |]
   where
     encodeTokenInfo ( fromText -> token
                     , fromBool -> privileged

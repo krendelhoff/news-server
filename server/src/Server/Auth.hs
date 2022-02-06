@@ -1,4 +1,5 @@
 {-# LANGUAGE DataKinds         #-}
+{-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE MonoLocalBinds    #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -6,29 +7,53 @@
 {-# LANGUAGE TypeOperators     #-}
 module Server.Auth where
 
-import Universum hiding (toText)
+import Hasql.Pool (Pool)
+import Universum  hiding (toText)
 
-import Application.Effects
 import Infrastructure
 import Types.Auth
-import Types.Users
-import Types.Environment
-import Types.Logger        (Level(INFO))
-import Utils               (hash)
+import Types.Environment (App, AuthenticatedApp)
+import Types.Logger      (Level(INFO))
+import Types.Users       (CreateForm(CreateForm))
+import Utils             (getCurrentTime, hash)
 
-import qualified Application.Effects.Auth  as Auth
-import qualified Application.Effects.Utils as Utils
+import qualified Database.Auth as Auth
+
+
+type API = "auth" :> (CreateAPI :<|> LoginAPI)
 
 server :: ServerT API App
-server = create
+server = create :<|> login
 
 type CreateAPI = "create" :> ReqBody 'JSON CreateForm :> Post AuthPayload
 
-type API = "auth" :> CreateAPI
---create :: (PersistUser m, UsesCurrentTime m, GenRandom m, CanReject m
+create :: CreateForm -> App AuthPayload
+create (CreateForm name surname login mAvatar password) = undefined
+
+type LoginAPI = "login" :> ReqBody 'JSON LoginForm :> Post AuthPayload
+
+login :: LoginForm -> App AuthPayload
+login = undefined
+
+type RefreshAPI = "refresh" :> Get AuthPayload
+
+refresh :: AuthenticatedApp '[User] AuthPayload
+refresh = undefined
+
+authenticate :: (HasPool env Pool, MonadReader env m, MonadIO m, MonadThrow m
+                 ) => Text -> m (AuthResult RawAuthData)
+authenticate mToken = do
+  curTime <- getCurrentTime
+  run (Auth.getByAccessToken curTime (fromText mToken)) >>= \case
+    NotFound -> run $ Auth.getByRefreshToken $ fromText mToken
+    x        -> return x
+
+-- NOTE effect tracking is actually useless here - it's ok to have such functions in IO
+
+{-create :: (PersistUser m, UsesCurrentTime m, GenRandom m, CanReject m
 --           ) => CreateForm -> m AuthPayload
 create :: CreateForm -> App AuthPayload
-create (CreateForm name surname login mAvatar password) = undefined {- do
+create (CreateForm name surname login mAvatar password) = do
   Auth.login login password >>= \case
     Nothing -> do
       tokens <- Utils.generateTokens
@@ -37,14 +62,8 @@ create (CreateForm name surname login mAvatar password) = undefined {- do
         >>= Auth.issueToken expirationDate (fromBool False) tokens
     _       -> reject (mkError status403 "User already exists")
 -}
---
---type API = "auth" :> (LoginAPI :<|> RefreshAPI)
---
---server :: Server API
---server = login :<|> refresh
---
---type LoginAPI = "login" :> ReqBody 'JSON LoginForm :> Post AuthPayload
---
+
+{-
 --login :: (Auth m, UsesCurrentTime m, Logging m, GenRandom m, CanReject m
 --          ) => LoginForm -> m AuthPayload
 --login (LoginForm login password) = do
@@ -54,11 +73,9 @@ create (CreateForm name surname login mAvatar password) = undefined {- do
 --      exprDate <- Utils.getExpirationDate
 --      log INFO $ "User " <> toText login <> " made login"
 --      Utils.generateTokens >>= ($ user) . Auth.issueToken exprDate rights
---
---
---type RefreshAPI = "refresh" :> Capture "refresh_token" RefreshToken
---                            :> Get AuthPayload
---
+-}
+
+{-
 --refresh :: (CanReject m, AuthenticateWeak m, UsesCurrentTime m
 --            , GenRandom m) => RefreshToken -> m AuthPayload
 --refresh rt = do
@@ -68,3 +85,4 @@ create (CreateForm name surname login mAvatar password) = undefined {- do
 --  else do
 --    exprDate <- Utils.getExpirationDate
 --    Utils.generateTokens >>= ($ user) . Auth.issueToken exprDate rights
+-}

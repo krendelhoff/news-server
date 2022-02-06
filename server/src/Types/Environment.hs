@@ -1,15 +1,19 @@
+{-# LANGUAGE DataKinds                  #-}
 {-# LANGUAGE DerivingStrategies         #-}
 {-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE FunctionalDependencies     #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE MultiParamTypeClasses      #-}
+{-# LANGUAGE KindSignatures             #-}
 {-# LANGUAGE RankNTypes                 #-}
+{-# LANGUAGE DeriveGeneric              #-}
 {-# LANGUAGE StandaloneDeriving         #-}
+{-# LANGUAGE DeriveAnyClass             #-}
 {-# LANGUAGE TemplateHaskell            #-}
 module Types.Environment where
 
-import Control.Lens.TH      (makeFields)
+import Control.Lens.TH      (makeFields, makeFieldsNoPrefix)
+import Dhall (FromDhall)
 import Control.Monad.Except (MonadError)
 import Universum
 
@@ -17,10 +21,11 @@ import qualified Hasql.Pool as HaSQL
 
 import Application
 import Infrastructure
+import Types.Auth (Auth)
+import Types.Logger (Level)
 
 import qualified Types.Users as Users
 
-import qualified Application.Auth       as Auth
 import qualified Application.Authors    as Authors
 import qualified Application.Categories as Categories
 import qualified Application.Logging    as Logging
@@ -28,16 +33,20 @@ import qualified Application.Pictures   as Pictures
 import qualified Application.Users      as Users
 import qualified Application.Utils      as Utils
 
+data Config = Config
+  { _dbConfig       :: DbConfig
+  , _dbPoolSettings :: DbPoolSettings
+  , _logLevel       :: Level
+  , _port           :: Port
+  } deriving (Eq, Show, Generic, FromDhall)
+makeFieldsNoPrefix ''Config
 
 data Environment m = Environment
-  { _environmentPool        :: HaSQL.Pool
-  , _environmentEnvDbConfig :: DbConfig
-  , _environmentApplication :: Application.Handle m
+  { _pool        :: HaSQL.Pool
+  , _config      :: Config
+  , _application :: Application.Handle m
   }
-makeFields ''Environment
-
-instance HasDbConfig (Environment m) where
-  dbConfig = envDbConfig
+makeFieldsNoPrefix ''Environment
 
 newtype AppM env m a = AppM { runAppM :: ReaderT env m a }
   deriving newtype ( Functor, Applicative, Monad, MonadReader env, MonadTrans )
@@ -49,12 +58,11 @@ deriving newtype instance MonadError ServerError m =>
 
 type App = AppM (Environment Handler) Handler
 
-newtype AuthenticatedApp a = AuthenticatedApp { runAuthApp :: ReaderT Users.ID App a }
+newtype AuthenticatedApp (rights :: [Auth]) a =
+  AuthenticatedApp { runAuthApp :: ReaderT Users.ID App a }
   deriving newtype ( Functor, Applicative, Monad, MonadReader Users.ID
                    , MonadError ServerError, MonadIO, MonadThrow
                    )
-
---type Server api = ServerT api App VERY BAD DECISION
 
 runApp :: r -> AppM r m a -> m a
 runApp env = flip runReaderT env . runAppM
@@ -67,9 +75,6 @@ instance Monad m => HasPersistPicture (Environment m) (Pictures.Handle m) where
 
 instance Monad m => HasLogging (Environment m) (Logging.Handle m) where
   logging = application . logging
-
-instance Monad m => HasAuth (Environment m) (Auth.Handle m) where
-  auth = application . auth
 
 instance Monad m => HasUtils (Environment m) (Utils.Handle m) where
   utils = application . utils

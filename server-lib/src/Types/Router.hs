@@ -1,13 +1,14 @@
 {-# LANGUAGE AllowAmbiguousTypes        #-}
 {-# LANGUAGE DataKinds                  #-}
 {-# LANGUAGE DeriveAnyClass             #-}
+{-# LANGUAGE DeriveFunctor              #-}
 {-# LANGUAGE DeriveGeneric              #-}
 {-# LANGUAGE DerivingVia                #-}
 {-# LANGUAGE GADTs                      #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE KindSignatures             #-}
 {-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE PolyKinds                  #-}
+{-# LANGUAGE RankNTypes                 #-}
 {-# LANGUAGE TemplateHaskell            #-}
 {-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE TypeOperators              #-}
@@ -16,9 +17,10 @@ module Types.Router where
 import Control.Lens         (makeLenses)
 import Control.Monad.Except
 import Data.Aeson           (ToJSON(toJSON), object)
-import GHC.TypeLits         (Nat, Symbol)
+import Data.UUID            (UUID)
+import GHC.TypeLits         (Symbol)
 import Network.HTTP.Types   (Query, RequestHeaders, StdMethod(..))
-import Universum            hiding (Handle)
+import Universum
 
 import qualified Data.ByteString.Lazy as BL
 
@@ -36,8 +38,6 @@ type Path = [Text]
 data AuthUser (a :: Type)
 data AuthAdmin (a :: Type)
 
-data AuthResult a = NotFound | TokenExpired | AuthSuccess a
-
 -- instance Semigroup Auth where
 --   NoAuth <> x  = x
 --   x <> NoAuth  = x
@@ -53,18 +53,33 @@ data AuthResult a = NotFound | TokenExpired | AuthSuccess a
 -- >>> all res
 -- Data constructor not in scope: Auth :: Auth
 
-data Handle a = Handle { _extractToken :: ByteString -> Maybe ByteString
-                       , _auth         :: ByteString -> IO (AuthResult a)
-                       }
-makeLenses ''Handle
+data RawAuthData = RawAuthData
+  { _userId       :: UUID
+  , _token        :: Text
+  , _refreshToken :: Text
+  , _isAdmin      :: Bool
+  }
 
-data RoutingEnv a = RoutingEnv { _path       :: [Text]
-                               , _method     :: StdMethod
-                               , _queryStr   :: Query
-                               , _headers    :: RequestHeaders
-                               , _body       :: BL.ByteString
-                               , _authHandle :: Handle a
-                               }
+data AuthResult a = NotFound | TokenExpired | AuthSuccess a deriving Functor
+
+--instance Functor AuthResult where
+--  fmap f NotFound        = NotFound
+--  fmap f TokenExpired    = TokenExpired
+--  fmap f (AuthSuccess a) = AuthSuccess $ f a
+
+data ServingHandle = ServingHandle
+  { _extractToken  :: ByteString -> Maybe Text
+  , _authenticate  :: Text       -> IO (AuthResult RawAuthData)
+  , _log           :: Text       -> IO ()
+  }
+
+data RoutingEnv = RoutingEnv { _path     :: Path
+                             , _method   :: StdMethod
+                             , _queryStr :: Query
+                             , _headers  :: RequestHeaders
+                             , _body     :: BL.ByteString
+                             , _handle   :: ServingHandle
+                             }
 makeLenses ''RoutingEnv
 
 data SMethod (m :: StdMethod) where
@@ -77,9 +92,9 @@ makeKnown' (stripModifier "Std") ''StdMethod
 
 data Verb (m :: StdMethod) (code :: Nat) (f :: Format) (a :: Type)
 
-type Get a    = Verb 'GET 200 'JSON a
-type Put a    = Verb 'PUT 200 'JSON a
-type Post a   = Verb 'POST 200 'JSON a
+type Get a    = Verb 'GET    200 'JSON a
+type Put a    = Verb 'PUT    200 'JSON a
+type Post a   = Verb 'POST   200 'JSON a
 type Delete a = Verb 'DELETE 200 'JSON a
 
 data a :<|> b = a :<|> b

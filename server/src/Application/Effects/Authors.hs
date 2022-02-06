@@ -5,7 +5,6 @@ module Application.Effects.Authors where
 
 import Universum
 
-import Application.Effects.Auth
 import Infrastructure
 
 import Application

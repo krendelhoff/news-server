@@ -22,7 +22,8 @@ data ServerError = ServerError Status Message
   deriving (Eq, Show, Exception)
 
 toResponse :: ServerError -> Response
-toResponse (ServerError st m) = responseLBS st [] (encode m)
+toResponse (ServerError st m) =
+  responseLBS st [("Content-type", "application/json; charset=utf-8")] (encode m)
 
 mkError :: Status -> Message -> ServerError
 mkError = ServerError
@@ -41,6 +42,18 @@ err401 = mkError status401 "Unauthorized"
 
 err403 :: ServerError
 err403 = mkError status403 "Access denied"
+
+err400BadMethod :: ServerError
+err400BadMethod = mkError status400 "Bad method"
+
+err400BadReqBody :: ServerError
+err400BadReqBody = mkError status400 "Bad request body"
+
+err400BadCapture :: String -> ServerError
+err400BadCapture cid = mkError status400 $ "Bad " <> fromString cid
+
+err400BadQueryParam :: String -> ServerError
+err400BadQueryParam s = mkError status400 $ "Bad " <> fromString s
 
 err403TokenExpired :: ServerError
 err403TokenExpired = mkError status403 "Token expired"

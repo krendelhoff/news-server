@@ -7,7 +7,6 @@ module Application.Effects.Categories where
 import Universum
 
 import Application
-import Application.Effects.Auth
 import Infrastructure           hiding (user)
 import Types.Categories
 import Types.Environment

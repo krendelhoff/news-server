@@ -11,6 +11,7 @@ import Application.Effects
 import Infrastructure
 import Types.Categories
 import Types.Environment
+import Types.Auth
 import Server.Errors
 
 import qualified Application.Effects.Categories as Categories
@@ -26,13 +27,13 @@ type API = "categories" :> GetAPI
 --             :<|> remove
 --             :<|> update
 --
-server :: ServerT API AuthenticatedApp
+server :: ServerT API (AuthenticatedApp '[User])
 server = undefined -- get
 
 type GetAPI = Capture "category_id" ID :> Get Payload
 
 --get :: AcquireCategory m => ID -> m Payload
-get :: ID -> AuthenticatedApp Payload
+get :: ID -> AuthenticatedApp '[User] Payload
 get = undefined -- Categories.get >=> maybe (reject categoryNotFoundError) return
 --
 --

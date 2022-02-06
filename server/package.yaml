@@ -8,6 +8,7 @@ copyright:           "2021 Savely Krendelhoff"
 
 data-files:
 - migrations/*
+- ../config.dhall
 
 # Metadata used when publishing your package
 # synopsis:            Short description of your package
@@ -25,7 +26,6 @@ dependencies:
 - text-show
 - bytestring
 - aeson
-- async
 - template-haskell
 - th-lift
 - deriving-aeson
@@ -50,15 +50,13 @@ dependencies:
 - http-api-data
 - path-pieces
 - validation
+- optparse-applicative
 - tagged
 - cryptonite
 - time
 - word8
 - dhall
 - fmt
-- tasty # cringe
-- tasty-hspec
-- tasty-hedgehog
 - server-lib
 
 default-extensions:
@@ -78,16 +76,16 @@ executables:
     dependencies:
     - server
 
-tests:
-  server-test:
-    main:                Spec.hs
-    source-dirs:         test
-    ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
-    dependencies:
-    - server
-    - tasty
-    - tasty-hspec
-    - tasty-hedgehog
+#tests:
+#  server-test:
+#    main:                Spec.hs
+#    source-dirs:         test
+#    ghc-options:
+#    - -threaded
+#   - -rtsopts
+#   - -with-rtsopts=-N
+#   dependencies:
+#   - server
+#   - tasty
+#   - tasty-hspec
+#   - tasty-hedgehog

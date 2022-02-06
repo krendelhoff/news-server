@@ -26,8 +26,6 @@
 #
 #        defaultPackage = self.packages.${system}.${packageName};
 
-        devShell = import ./shell.nix { inherit pkgs hls; }; # вот хули здесь нет атрибута packages? надо разбираться
-                                                             # хули разбираться - посмотри исходники
-                                                             # или поищи как пользуются другие бройлер
+        devShell = import ./shell.nix { inherit pkgs hls; };
       });
 }

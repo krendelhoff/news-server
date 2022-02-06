@@ -2,10 +2,6 @@ module Application.Effects ( PersistUser
                            , AcquireUser
                            , PersistPicture
                            , Logging(..)
---                           , Auth
---                           , AuthenticateUser
---                           , AuthenticateAdmin
---                           , AuthenticateWeak
                            , UsesCurrentTime
                            , GenRandom
                            , CanReject(..)
@@ -14,7 +10,6 @@ module Application.Effects ( PersistUser
                            , PersistCategory
                            ) where
 
-import Application.Effects.Auth
 import Application.Effects.Logging
 import Application.Effects.Pictures
 import Application.Effects.Users
