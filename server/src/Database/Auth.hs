@@ -1,19 +1,34 @@
+{-# LANGUAGE LambdaCase   #-}
 {-# LANGUAGE QuasiQuotes  #-}
 {-# LANGUAGE ViewPatterns #-}
-{-# LANGUAGE LambdaCase #-}
 module Database.Auth where
 
 import Hasql.TH
 import Hasql.Transaction
 import Universum         hiding (toText)
 
-import qualified Types.Users as Users
+import qualified Types.Pictures as Pictures
+import qualified Types.Users    as Users
 
-import Types.Auth
-import Types.Users (ExpirationDate, IsAdmin, Login, Password)
 import Infrastructure
-import Types.Utils (CurrentTime)
-import Utils       (hash)
+import Types.Auth
+import Types.Users    (ExpirationDate, IsAdmin, Login, Name, Password, Surname)
+import Types.Utils    (CurrentTime)
+import Utils          (hash)
+import Data.Time (UTCTime)
+
+
+create :: Name -> Surname -> Login -> Maybe Pictures.ID
+       -> Password -> Transaction Users.ID
+create (toText -> name) (toText -> surname)
+       (toText -> login) ((toUUID <$>) -> mAvatar)
+       (toText . hash -> passwordHash) = fromUUID <$>
+  statement (name,surname,login, mAvatar, passwordHash)
+  [singletonStatement|
+     INSERT INTO users (name,surname,login,avatar,password_hash,privileged)
+     VALUES ($1::text,$2::text,$3::text,$4::uuid?,$5::text,false)
+     RETURNING id::uuid
+  |]
 
 getByRefreshToken :: RefreshToken -> Transaction (AuthResult RawAuthData)
 getByRefreshToken (toText -> mToken) =
@@ -24,7 +39,7 @@ getByRefreshToken (toText -> mToken) =
                        Nothing -> return NotFound
                        Just x  -> return $ AuthSuccess $ decodeRawAuthData x
  where
-   decodeRawAuthData (u, t, rT, iA) = RawAuthData u t rT iA
+   decodeRawAuthData (u, t, rT, iA) = RawAuthData u t rT iA Refresh
 
 getByAccessToken :: CurrentTime -> AccessToken -> Transaction (AuthResult RawAuthData)
 getByAccessToken curTime mToken = do
@@ -32,7 +47,8 @@ getByAccessToken curTime mToken = do
     Nothing                       -> return NotFound
     Just (TokenInfo _ _ (toBool -> True) _ _) -> return TokenExpired
     Just (TokenInfo token isAdmin _ refreshToken user) ->
-      return $ AuthSuccess $ RawAuthData (toUUID user) (toText token) (toText refreshToken) (toBool isAdmin)
+      return $ AuthSuccess $
+      RawAuthData (toUUID user) (toText token) (toText refreshToken) (toBool isAdmin) Access
 
 getTokenInfo :: AccessToken -> CurrentTime -> Transaction (Maybe TokenInfo)
 getTokenInfo (toText -> mToken) (toUTCTime -> curTime) =
@@ -48,6 +64,18 @@ getTokenInfo (toText -> mToken) (toUTCTime -> curTime) =
                     , fromUUID -> user
                     ) = TokenInfo token privileged expired refreshToken user
 
+refreshToken :: Users.ID -> ExpirationDate
+             -> (AccessToken, RefreshToken) -> Transaction AuthPayload
+refreshToken (toUUID -> uid) (toUTCTime -> exprDate)
+             (bimap toText toText -> (atoken, rtoken)) =
+  decodeAuthPayload <$>
+  statement (uid, exprDate, atoken, rtoken) [singletonStatement|
+    UPDATE auth SET token = $3::text, refresh_token = $4::text
+                  , expires = $2::timestamptz
+    WHERE user_id = $1::uuid
+    RETURNING token::text,expires::timestamptz,refresh_token::text
+                                            |]
+
 login :: Login -> Password -> Transaction (Maybe LoginInfo)
 login (toText -> login) (toText . hash -> passwordHash) =
   (uncurry LoginInfo . bimap fromUUID fromBool <$>) <$>
@@ -56,11 +84,17 @@ login (toText -> login) (toText . hash -> passwordHash) =
     WHERE login=$1::text AND password_hash=$2::text
                                   |]
 
+decodeAuthPayload :: (Text, UTCTime, Text) -> AuthPayload
+decodeAuthPayload ( fromText    -> at
+                  , fromUTCTime -> exprs
+                  , fromText    -> rt
+                  ) = AuthPayload at rt exprs
+
 issueToken :: ExpirationDate -> IsAdmin -> (AccessToken, RefreshToken)
            -> Users.ID -> Transaction AuthPayload
 issueToken (toUTCTime -> expires) (toBool -> privileged)
   (bimap toText toText -> (token, refreshToken)) (toUUID -> user) =
-  encodeAuthPayload <$>
+  decodeAuthPayload <$>
   statement (user, privileged, token, refreshToken, expires)
   [singletonStatement|
     INSERT INTO auth (user_id,privileged,token,refresh_token,expires)
@@ -69,8 +103,3 @@ issueToken (toUTCTime -> expires) (toBool -> privileged)
     DO UPDATE SET token=$3::text,refresh_token=$4::text,expires=$5::timestamptz
     RETURNING token::text,expires::timestamptz,refresh_token::text
  |]
- where
-   encodeAuthPayload ( fromText    -> at
-                     , fromUTCTime -> exprs
-                     , fromText    -> rt
-                     ) = AuthPayload at rt exprs

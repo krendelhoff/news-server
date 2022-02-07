@@ -11,7 +11,7 @@ module Types.Auth where
 
 import Universum (Eq, Show)
 
-import Types.Infrastructure (deriveWeb, newBoolType, newTextType)
+import Types.Infrastructure (deriveWeb, newBoolType, newTextType, AuthType)
 import Types.Users          (ExpirationDate, IsAdmin, Login, Password)
 
 import qualified Types.Users as Users
@@ -50,6 +50,7 @@ data AuthData = AuthData
   , authDataToken        :: AccessToken
   , authDataRefreshToken :: RefreshToken
   , authDataIsAdmin      :: IsAdmin
+  , authDataAuthType     :: AuthType
   }
 deriveWeb "authData" ''AuthData
 

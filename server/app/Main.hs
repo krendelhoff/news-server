@@ -19,7 +19,6 @@ import Logger
 import Migration (applyMigrations)
 import Server    (API, server)
 import Server.Auth       (authenticate)
-import Types.Auth
 import Types.Environment
 import Utils             (parseToken)
 

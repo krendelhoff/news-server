@@ -16,7 +16,7 @@ module Types.Router where
 
 import Control.Lens         (makeLenses)
 import Control.Monad.Except
-import Data.Aeson           (ToJSON(toJSON), object)
+import Data.Aeson           (ToJSON(toJSON), object, FromJSON)
 import Data.UUID            (UUID)
 import GHC.TypeLits         (Symbol)
 import Network.HTTP.Types   (Query, RequestHeaders, StdMethod(..))
@@ -58,7 +58,10 @@ data RawAuthData = RawAuthData
   , _token        :: Text
   , _refreshToken :: Text
   , _isAdmin      :: Bool
+  , _authType     :: AuthType
   }
+
+data AuthType = Access | Refresh deriving (Eq, Show, Generic, FromJSON, ToJSON)
 
 data AuthResult a = NotFound | TokenExpired | AuthSuccess a deriving Functor
 

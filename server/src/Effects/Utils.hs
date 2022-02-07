@@ -1,5 +1,7 @@
 {-# LANGUAGE FlexibleContexts     #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE FlexibleInstances #-}
 module Effects.Utils where
 
 import Control.Monad.Except (Monad, MonadTrans(lift))
@@ -37,5 +39,13 @@ instance (
   getCurrentTime = Utils.getCurrentTime
 
 instance (
+          ) => UsesCurrentTime App where
+  getCurrentTime = Utils.getCurrentTime
+
+instance (
           ) => GenRandom (AuthenticatedApp rights) where
+  genRandomBytes = Utils.getRandomBytes
+
+instance (
+          ) => GenRandom App where
   genRandomBytes = Utils.getRandomBytes
