@@ -15,7 +15,7 @@ import Infrastructure (run)
 import qualified Database.Users as DB
 
 class Monad m => AcquireUser m where
-  get    :: m Payload
+  get :: m Payload
 
 instance (
           ) => AcquireUser (AuthenticatedApp rights) where

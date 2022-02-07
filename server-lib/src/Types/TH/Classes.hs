@@ -22,19 +22,22 @@ stripModifier :: [Char] -> [Char] -> String
 stripModifier metaName (stripPrefix metaName -> Just x) = x
 stripModifier _ x                                       = x
 
-makeIsClass :: String -> DecsQ
-makeIsClass metaName = let className = mkName $ "Is" <> metaName;
-                           fromName  = mkName $ "from" <> metaName;
-                           toName    = mkName $ "to"  <> metaName;
-                           var       = mkName "a";
-                           name      = mkName metaName;
-                   in return [ClassD [] className [PlainTV var] []
-             [ SigD fromName (AppT (AppT ArrowT (ConT name)) (VarT var))
-             , SigD toName   (AppT (AppT ArrowT (VarT var)) (ConT name)) ]
-             , InstanceD Nothing [] (AppT (ConT className) (ConT name))
-                 [ ValD (VarP fromName) (NormalB (VarE 'id)) []
-                 , ValD (VarP toName)   (NormalB (VarE 'id)) [] ]]
+makeIsClass' :: (String -> String) -> String -> DecsQ
+makeIsClass' modifier metaName@(modifier -> modMetaName) =
+  let className = mkName $ "Is" <> modMetaName;
+      fromName  = mkName $ "from" <> modMetaName;
+      toName    = mkName $ "to"  <> modMetaName;
+      var       = mkName "a";
+      name      = mkName metaName;
+  in return [ClassD [] className [PlainTV var] []
+      [ SigD fromName (AppT (AppT ArrowT (ConT name)) (VarT var))
+      , SigD toName   (AppT (AppT ArrowT (VarT var)) (ConT name)) ]
+      , InstanceD Nothing [] (AppT (ConT className) (ConT name))
+      [ ValD (VarP fromName) (NormalB (VarE 'id)) []
+      , ValD (VarP toName)   (NormalB (VarE 'id)) [] ]]
 
+makeIsClass :: String -> DecsQ
+makeIsClass = makeIsClass' id
 
 makeKnown' :: (String -> String) -> Name -> DecsQ
 makeKnown' modifier metaName = do

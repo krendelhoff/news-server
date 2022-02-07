@@ -53,6 +53,7 @@ dependencies:
 - tagged
 - cryptonite
 - time
+- yaml
 - word8
 - fmt
 - server-lib

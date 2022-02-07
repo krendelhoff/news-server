@@ -4,10 +4,9 @@ module Effects.Utils where
 
 import Control.Monad.Except (Monad, MonadTrans(lift))
 import Universum
-
-
 import Crypto.Hash       (SHA256(SHA256), hashWith)
 import Data.Time         (addUTCTime)
+
 import Infrastructure
 import Types.Auth
 import Types.Environment

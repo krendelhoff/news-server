@@ -14,6 +14,7 @@ module Types.DB where
 
 import Control.Lens.TH (makeFieldsNoPrefix)
 import Data.Aeson      (FromJSON)
+import TextShow.TH
 import Deriving.Aeson
 import Universum
 
@@ -29,6 +30,7 @@ newTextType "DbPassword"
 
 newtype Port = Port Word16 deriving stock (Eq, Show, Generic)
                            deriving newtype (Ord, Num, FromJSON)
+deriveTextShow ''Port
 
 data DbPoolSettings = DbPoolSettings
   { _size    :: PoolSize
@@ -40,7 +42,7 @@ makeFieldsNoPrefix ''DbPoolSettings
 
 data DbConfig = DbConfig
   { _hostName   :: HostName
-  , _dbPort     :: Port
+  , _port       :: Port
   , _user       :: DbUser
   , _dbName     :: DbName
   , _dbPassword :: DbPassword

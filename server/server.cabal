@@ -100,6 +100,7 @@ library
     , wai-extra
     , warp
     , word8
+    , yaml
   default-language: Haskell2010
 
 executable server
@@ -152,4 +153,5 @@ executable server
     , wai-extra
     , warp
     , word8
+    , yaml
   default-language: Haskell2010

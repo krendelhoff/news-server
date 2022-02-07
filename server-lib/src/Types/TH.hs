@@ -10,7 +10,7 @@
 module Types.TH where
 
 import Data.Aeson
-import Data.Char           (toLower)
+import Data.Char           (toLower, isAlpha)
 import Data.List           (stripPrefix)
 import Data.Time
 import Data.Traversable    (for)
@@ -29,7 +29,7 @@ import Types.TH.Classes
 
 
 makeIsClass "Text"
-makeIsClass "Int64"
+makeIsClass' (takeWhile isAlpha) "Int64"
 makeIsClass "UUID"
 makeIsClass "Bool"
 makeIsClass "UTCTime"
@@ -74,7 +74,7 @@ newIntType metaName = let name = mkName metaName in
                                       , ''ToHttpApiData
                                       , ''FromHttpApiData
                                       , ''Num
-                                      , ''IsInt64
+                                      , ''IsInt
                                       ] ]]
 
 newUUIDType :: String -> DecsQ
