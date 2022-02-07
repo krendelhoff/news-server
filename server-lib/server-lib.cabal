@@ -41,13 +41,14 @@ library
       aeson
     , base
     , bytestring
-    , cryptonite
     , deriving-aeson
-    , dhall
     , exceptions
     , filepath
     , hasql
+    , hasql-migration
     , hasql-pool
+    , hasql-th
+    , hasql-transaction
     , http-api-data
     , http-types
     , lens
@@ -55,11 +56,9 @@ library
     , path-pieces
     , template-haskell
     , text
-    , text-show
     , time
     , universum
     , uuid
     , wai
     , warp
-    , word8
   default-language: Haskell2010

@@ -1,0 +1,12 @@
+{ "dbConfig": { "hostName": "localhost",
+                "port": 5432,
+                "user"  : "savely",
+                "dbName": "db",
+                "dbPassword": ""
+              },
+  "dbPoolSettings": { "size": 10,
+                      "timeout": 5
+                    },
+  "logLevel": "INFO",
+  "port": 7988
+}

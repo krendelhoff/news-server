@@ -6,8 +6,8 @@
 module Main where
 
 import Control.Concurrent (forkIO)
-import Dhall              (Text, input, auto)
 import Network.Wai        (Application)
+import Data.Aeson         (decode)
 import Universum          hiding (toText)
 
 import qualified Hasql.Pool               as Pool
@@ -22,21 +22,20 @@ import Migration         (applyMigrations)
 import Types.Environment
 import Types.Auth
 
-import qualified Application
-
 warpSettings :: Warp.Settings
 warpSettings = Warp.setBeforeMainLoop
                  (putStrLn @Text "Server initialized at localhost:3000...")
                  Warp.defaultSettings
 
-mkApp :: ServingHandle -> Environment Handler -> Application
+mkApp :: ServingHandle -> Environment -> Application
 mkApp handle env = serve @API handle (unlift @API (runApp env) server)
 
 main :: IO ()
 main = do
   -- TODO add optparse-applicative
-  conf <- readFile "config.dhall" >>= input auto
-  print @Config conf
+  conf <- readFile "config.json" >>= return . decode @Config . encodeUtf8
+  -- TODO fail here and good error message
+  print @(Maybe Config) conf
   undefined{-
   logger <- newLogger
   forkIO do mkLoggingThread (Logging INFO) logger

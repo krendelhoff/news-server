@@ -1,12 +1,11 @@
 {-# LANGUAGE FlexibleContexts     #-}
 {-# LANGUAGE UndecidableInstances #-}
-module Application.Effects.Utils where
+module Effects.Utils where
 
 import Control.Monad.Except (Monad, MonadTrans(lift))
 import Universum
 
 
-import Application       (HasUtils(utils))
 import Crypto.Hash       (SHA256(SHA256), hashWith)
 import Data.Time         (addUTCTime)
 import Infrastructure
@@ -15,7 +14,7 @@ import Types.Environment
 import Types.Users
 import Types.Utils
 
-import qualified Application.Utils as Utils
+import qualified Utils
 
 class Monad m => UsesCurrentTime m where
   getCurrentTime :: m CurrentTime
@@ -34,14 +33,10 @@ generateTokens = ((,) <$> genRandomBytes 256 <*> genRandomBytes 256)
         bytesToRefreshToken = fromText . fromString . show . hashWith SHA256
 
 
-instance (HasUtils env (Utils.Handle m), Monad m
-          ) => UsesCurrentTime (AppM env m) where
-  getCurrentTime = do
-    utilsHandle <- view utils
-    lift $ view Utils.getCurrentTime utilsHandle
+instance (
+          ) => UsesCurrentTime (AuthenticatedApp rights) where
+  getCurrentTime = Utils.getCurrentTime
 
-instance (HasUtils env (Utils.Handle m), Monad m
-          ) => GenRandom (AppM env m) where
-  genRandomBytes n = do
-    utilsHandle <- view utils
-    lift $ view Utils.genRandomBytes utilsHandle n
+instance (
+          ) => GenRandom (AuthenticatedApp rights) where
+  genRandomBytes = Utils.getRandomBytes

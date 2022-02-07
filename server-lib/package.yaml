@@ -18,7 +18,6 @@ dependencies:
 - exceptions
 - mtl
 - text
-- text-show
 - bytestring
 - aeson
 - template-haskell
@@ -30,14 +29,14 @@ dependencies:
 - wai
 - hasql
 - hasql-pool
+- hasql-migration
+- hasql-transaction
+- hasql-th
 - uuid
 - http-types
 - http-api-data
 - path-pieces
-- cryptonite
 - time
-- word8
-- dhall
 
 default-extensions:
 - NoImplicitPrelude

@@ -1,22 +1,22 @@
+{-# LANGUAGE DeriveAnyClass         #-}
+{-# LANGUAGE DeriveGeneric          #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE MultiParamTypeClasses  #-}
 {-# LANGUAGE OverloadedStrings      #-}
 {-# LANGUAGE TemplateHaskell        #-}
-{-# LANGUAGE DeriveAnyClass         #-}
-{-# LANGUAGE DeriveGeneric          #-}
 module Types.Logger where
 
 import Control.Concurrent.STM (TQueue)
 import Control.Lens.TH        (makeFieldsNoPrefix, makeLenses)
+import Data.Aeson             (FromJSON)
+import Data.String            (IsString)
 import TextShow               (TextShow(showb), fromText)
 import TextShow.TH            (deriveTextShow)
-import Universum              (Eq, Ord, Semigroup((<>)), Show, Text, id)
-import Data.String            (IsString)
-import Dhall                  (Generic, FromDhall)
+import Universum
 
 data Mode = NoLogging | Logging Level deriving (Eq , Show)
 
-data Level = ERROR | WARN | DEBUG | INFO deriving (Eq, Ord, Show, Generic, FromDhall)
+data Level = ERROR | WARN | DEBUG | INFO deriving (Eq, Ord, Show, Generic, FromJSON)
 deriveTextShow ''Level
 
 data Log = Log { _level  :: Level

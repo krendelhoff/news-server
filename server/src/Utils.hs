@@ -1,6 +1,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeApplications  #-}
 {-# LANGUAGE ViewPatterns      #-}
+{-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeOperators #-}
 module Utils where
 
 import Control.Lens    (Iso', iso)
@@ -22,6 +27,11 @@ import Infrastructure
 import Types.Auth     (AccessToken)
 import Types.Users    (Hash, Password)
 import Types.Utils    (CurrentTime)
+
+type family Elem (lst :: [a]) (el :: a) where
+  Elem '[] a       = 'False
+  Elem (a ': xs) a = 'True
+  Elem (x ': xs) a = Elem xs a
 
 parseToken :: ByteString -> Either TokenError AccessToken
 parseToken (((fromText . T.strip <$>) . decodeUtf8' <$>)

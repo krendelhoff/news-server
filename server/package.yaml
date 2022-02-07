@@ -8,7 +8,6 @@ copyright:           "2021 Savely Krendelhoff"
 
 data-files:
 - migrations/*
-- ../config.dhall
 
 # Metadata used when publishing your package
 # synopsis:            Short description of your package
@@ -55,7 +54,6 @@ dependencies:
 - cryptonite
 - time
 - word8
-- dhall
 - fmt
 - server-lib
 

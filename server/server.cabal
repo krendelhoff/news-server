@@ -16,7 +16,6 @@ license:        BSD3
 build-type:     Simple
 data-files:
     migrations/01-initial.sql
-    ../config.dhall
 
 source-repository head
   type: git
@@ -24,26 +23,19 @@ source-repository head
 
 library
   exposed-modules:
-      Application
-      Application.Authors
-      Application.Categories
-      Application.Effects
-      Application.Effects.Authors
-      Application.Effects.CanReject
-      Application.Effects.Categories
-      Application.Effects.Logging
-      Application.Effects.Pictures
-      Application.Effects.Users
-      Application.Effects.Utils
-      Application.Logging
-      Application.Pictures
-      Application.Users
-      Application.Utils
       Database.Auth
       Database.Authors
       Database.Categories
       Database.Pictures
       Database.Users
+      Effects
+      Effects.Authors
+      Effects.CanReject
+      Effects.Categories
+      Effects.Logging
+      Effects.Pictures
+      Effects.Users
+      Effects.Utils
       Logger
       Migration
       Server
@@ -75,7 +67,6 @@ library
     , cryptonite
     , data-has
     , deriving-aeson
-    , dhall
     , exceptions
     , file-embed
     , filepath
@@ -127,7 +118,6 @@ executable server
     , cryptonite
     , data-has
     , deriving-aeson
-    , dhall
     , exceptions
     , file-embed
     , filepath

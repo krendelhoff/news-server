@@ -26,7 +26,6 @@ import qualified Data.ByteString as B
 import qualified Data.Text       as T
 
 import Types.TH.Classes
-import Dhall (FromDhall)
 
 
 makeIsClass "Text"
@@ -56,7 +55,6 @@ newTextType metaName = let name = mkName metaName in
                                       , ''Monoid
                                       , ''IsString
                                       , ''IsText
-                                      , ''FromDhall
                                       ] ]]
 
 newIntType :: String -> DecsQ
@@ -77,7 +75,6 @@ newIntType metaName = let name = mkName metaName in
                                       , ''FromHttpApiData
                                       , ''Num
                                       , ''IsInt64
-                                      , ''FromDhall
                                       ] ]]
 
 newUUIDType :: String -> DecsQ
@@ -114,7 +111,6 @@ newBoolType metaName = let name = mkName metaName in
                                       , ''ToHttpApiData
                                       , ''FromHttpApiData
                                       , ''IsBool
-                                      , ''FromDhall
                                       ] ]]
 
 -- -- FIXME REALLY, REALLY BAD FUNCTIONS
@@ -180,8 +176,6 @@ data Decapitalize
 
 instance StringModifier Decapitalize where
   getStringModifier = decapitalize
-
-
 
 stripPrefixDecapitalizeOptions :: [Char] -> Options
 stripPrefixDecapitalizeOptions pref =

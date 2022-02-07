@@ -1,86 +1,75 @@
 {-# LANGUAGE DataKinds                  #-}
+{-# LANGUAGE DeriveAnyClass             #-}
+{-# LANGUAGE DeriveGeneric              #-}
 {-# LANGUAGE DerivingStrategies         #-}
+{-# LANGUAGE DerivingVia                #-}
 {-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE FunctionalDependencies     #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE KindSignatures             #-}
 {-# LANGUAGE RankNTypes                 #-}
-{-# LANGUAGE DeriveGeneric              #-}
 {-# LANGUAGE StandaloneDeriving         #-}
-{-# LANGUAGE DeriveAnyClass             #-}
 {-# LANGUAGE TemplateHaskell            #-}
 module Types.Environment where
 
 import Control.Lens.TH      (makeFields, makeFieldsNoPrefix)
-import Dhall (FromDhall)
 import Control.Monad.Except (MonadError)
+import Data.Aeson           (FromJSON)
+import Deriving.Aeson
 import Universum
 
 import qualified Hasql.Pool as HaSQL
 
-import Application
 import Infrastructure
-import Types.Auth (Auth)
-import Types.Logger (Level)
+import Types.Auth     (Auth)
+import Types.Logger   (HasLogger(logger), Level, Logger(Logger))
 
 import qualified Types.Users as Users
-
-import qualified Application.Authors    as Authors
-import qualified Application.Categories as Categories
-import qualified Application.Logging    as Logging
-import qualified Application.Pictures   as Pictures
-import qualified Application.Users      as Users
-import qualified Application.Utils      as Utils
 
 data Config = Config
   { _dbConfig       :: DbConfig
   , _dbPoolSettings :: DbPoolSettings
   , _logLevel       :: Level
   , _port           :: Port
-  } deriving (Eq, Show, Generic, FromDhall)
+  } deriving stock (Eq, Show, Generic)
+    deriving (FromJSON) via
+    (CustomJSON '[FieldLabelModifier '[StripPrefix "_"]] Config)
 makeFieldsNoPrefix ''Config
 
-data Environment m = Environment
-  { _pool        :: HaSQL.Pool
-  , _config      :: Config
-  , _application :: Application.Handle m
+data Environment = Environment
+  { _pool   :: HaSQL.Pool
+  , _config :: Config
+  , _logger :: Logger
   }
 makeFieldsNoPrefix ''Environment
 
 newtype AppM env m a = AppM { runAppM :: ReaderT env m a }
   deriving newtype ( Functor, Applicative, Monad, MonadReader env, MonadTrans )
 
-deriving newtype instance MonadThrow m => MonadThrow (AppM (Environment m) m)
-deriving newtype instance MonadIO m => MonadIO (AppM (Environment m) m)
+deriving newtype instance MonadThrow m => MonadThrow (AppM Environment m)
+deriving newtype instance MonadIO m => MonadIO (AppM Environment m)
 deriving newtype instance MonadError ServerError m =>
-  MonadError ServerError (AppM (Environment m) m)
+  MonadError ServerError (AppM Environment m)
 
-type App = AppM (Environment Handler) Handler
+type App = AppM Environment Handler
 
 newtype AuthenticatedApp (rights :: [Auth]) a =
   AuthenticatedApp { runAuthApp :: ReaderT Users.ID App a }
-  deriving newtype ( Functor, Applicative, Monad, MonadReader Users.ID
+  deriving newtype ( Functor, Applicative, Monad
                    , MonadError ServerError, MonadIO, MonadThrow
                    )
 
+class HasUserId (m :: Type -> Type) where
+  getUserId :: m Users.ID
+
+instance HasUserId (AuthenticatedApp rights) where
+  getUserId = AuthenticatedApp ask
+
+instance MonadReader Environment (AuthenticatedApp rights) where
+  ask = AuthenticatedApp $ lift ask
+  local f m =
+    getUserId >>= AuthenticatedApp . lift . local f . runReaderT (runAuthApp m)
+
 runApp :: r -> AppM r m a -> m a
 runApp env = flip runReaderT env . runAppM
-
-instance Monad m => HasPersistUser (Environment m) (Users.Handle m) where
-  persistUser = application . persistUser
-
-instance Monad m => HasPersistPicture (Environment m) (Pictures.Handle m) where
-  persistPicture = application . persistPicture
-
-instance Monad m => HasLogging (Environment m) (Logging.Handle m) where
-  logging = application . logging
-
-instance Monad m => HasUtils (Environment m) (Utils.Handle m) where
-  utils = application . utils
-
-instance Monad m => HasPersistAuthor (Environment m) (Authors.Handle m) where
-  persistAuthor = application . persistAuthor
-
-instance Monad m => HasPersistCategories (Environment m) (Categories.Handle m) where
-  persistCategories = application . persistCategories

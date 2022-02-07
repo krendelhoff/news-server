@@ -1,12 +1,12 @@
 {-# LANGUAGE FlexibleContexts     #-}
 {-# LANGUAGE FlexibleInstances    #-}
 {-# LANGUAGE UndecidableInstances #-}
-module Application.Effects.CanReject where
+module Effects.CanReject where
 
 import Universum
 
 import Control.Monad.Except (MonadError(throwError))
-import Infrastructure
+import Infrastructure       (ServerError)
 
 class MonadError ServerError m => CanReject m where
   reject :: ServerError -> m a
