@@ -1,6 +1,0 @@
-* The News Server
-** Goals
- - [X] Asynchronous logger
- - [X] Servant-like type level routing implementation
- - [X] Using TH in favor of Type Driven Development
- - [ ] Effect tracking system with capability to mock out impure actions

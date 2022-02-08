@@ -11,6 +11,7 @@ import Effects
 import Infrastructure
 import Server.Errors     (categoryNotFoundError)
 import Types.Auth
+import Types.Utils
 import Types.Categories
 import Types.Environment (AuthenticatedApp)
 
@@ -22,10 +23,16 @@ server :: ServerT API (AuthenticatedApp '[User])
 server = get :<|> create
 
 
-type GetAPI = Capture "category_id" ID :> Get Payload
+type GetAPI = QueryParam "recursive" Bool :> Capture "category_id" ID
+                                          :> Get (SumType Payload PayloadRecursive)
 
-get :: AcquireCategory m => ID -> m Payload
-get = Categories.get >=> maybe (reject categoryNotFoundError) return
+get :: AcquireCategory m => Maybe Bool -> ID -> m (SumType Payload PayloadRecursive)
+get (Just True) =
+  Categories.getRecursive
+  >=> maybe (reject categoryNotFoundError) (return . SumB)
+get _ =
+  Categories.get
+  >=> maybe (reject categoryNotFoundError) (return . SumA)
 
 
 type CreateAPI = "create" :> ReqBody 'JSON CreateForm

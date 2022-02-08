@@ -16,7 +16,7 @@ import Universum
 
 data Mode = NoLogging | Logging Level deriving (Eq , Show)
 
-data Level = ERROR | WARN | DEBUG | INFO deriving (Eq, Ord, Show, Generic, FromJSON)
+data Level = ERROR | WARN | INFO | DEBUG deriving (Eq, Ord, Show, Generic, FromJSON)
 deriveTextShow ''Level
 
 data Log = Log { _level  :: Level

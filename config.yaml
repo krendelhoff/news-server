@@ -1,3 +1,4 @@
+# Port to run server
 port: 7988
 
 doLogging: true
@@ -11,5 +12,7 @@ dbConfig:
   dbPassword: ""
 
 dbPoolSettings:
+  # Size of the pool (Integer)
   size: 10
+  # An amount of time for which an unused resource is kept open. (Integer)
   timeout: 5

@@ -22,15 +22,14 @@ type API = "categories" :> (RemoveAPI :<|> UpdateAPI)
 server :: ServerT API (AuthenticatedApp '[Admin, User])
 server = remove :<|> update
 
-type RemoveAPI = "remove" :> Capture "category_id" ID :> Delete NoContent
+type RemoveAPI = Capture "category_id" ID :> Delete NoContent
 
 remove :: PersistCategory m => ID -> m NoContent
 remove = Categories.remove
 
-type UpdateAPI = "update" :> Capture "category_id" ID
-                          :> QueryParam "title" Title
-                          :> QueryParam "parent" ID
-                          :> Put Payload
+type UpdateAPI = Capture "category_id" ID :> QueryParam "title" Title
+                                          :> QueryParam "parent" ID
+                                          :> Put Payload
 
 -- FIXME add validation
 update :: PersistCategory m => ID -> Maybe Title -> Maybe ID -> m Payload
@@ -39,7 +38,7 @@ update mCat mT mP = Categories.get mCat >>= \case
   Just (Payload cat _ _) -> update' cat mT mP
   where
     update' :: PersistCategory m => ID -> Maybe Title -> Maybe ID -> m Payload
-    update' cat Nothing Nothing = UserServer.get cat
+    update' cat Nothing Nothing = Categories.get mCat >>= maybe (reject categoryNotFoundError) return
     update' cat Nothing (Just mParent) = Categories.get mParent >>= \case
       Nothing -> reject rebaseDestinationNotExist
       Just (Payload parent _ _) -> Categories.rebase cat parent >>= \case
