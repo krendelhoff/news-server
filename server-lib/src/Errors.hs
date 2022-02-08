@@ -5,16 +5,25 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE TypeSynonymInstances       #-}
+{-# LANGUAGE StandaloneDeriving #-}
 module Errors where
 
 import Data.Aeson         (ToJSON, encode)
 import Hasql.Connection   (ConnectionError)
-import Hasql.Migration    (MigrationError)
-import Network.HTTP.Types (Status, status401, status404, status500, status403, status400)
+import Hasql.Migration    (MigrationError (..))
+import Network.HTTP.Types
+    ( Status
+    , status400
+    , status401
+    , status403
+    , status404
+    , status500
+    )
 import Network.Wai        (Response, responseLBS)
 import Universum
 
-import qualified Hasql.Pool as Pool
+import qualified Data.ByteString.Char8 as BC
+import qualified Hasql.Pool            as Pool
 
 -- HTTP
 
@@ -61,7 +70,10 @@ err403TokenExpired = mkError status403 "Token expired"
 err403TokenInvalid :: ServerError
 err403TokenInvalid = mkError status403 "Token invalid"
 
-data TokenError = NoToken | BadToken deriving (Eq, Show)
+failGracefully :: SomeException -> IO a
+failGracefully e = do
+  putStrLn (displayException e)
+  exitFailure
 
 newtype Message = Message { message :: Text }
   deriving stock (Eq, Show, Generic)
@@ -70,6 +82,15 @@ newtype Message = Message { message :: Text }
 
 -- Database
 
-instance Exception ConnectionError
-instance Exception MigrationError
-instance Exception Pool.UsageError
+instance Exception ConnectionError where
+  displayException = maybe "" (("[Exception: ConnectionError] " <>) . BC.unpack)
+
+instance Exception MigrationError where
+  displayException (ScriptChanged s)    = "[Exception: ScriptChanged] "    <> s
+  displayException (ScriptMissing s)    = "[Exception: ScriptMissing] "    <> s
+  displayException (ChecksumMismatch s) = "[Exception: ChecksumMismatch] " <> s
+  displayException NotInitialised       = "***[Exception: Database Migrations Not Initialized]"
+
+instance Exception Pool.UsageError where
+  displayException (Pool.ConnectionError connErr) = displayException connErr
+  displayException (Pool.SessionError queryErr) = displayException queryErr

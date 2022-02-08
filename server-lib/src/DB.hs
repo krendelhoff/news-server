@@ -22,7 +22,7 @@ module DB ( Transaction
 import Hasql.Connection           (Connection, acquire, release)
 import Hasql.Pool                 (Pool)
 import TextShow                   (showt)
-import Errors                     ()
+import Errors                     (failGracefully)
 import Hasql.Connection           (ConnectionError)
 import Hasql.TH
 import Hasql.Pool                 (UsageError)
@@ -57,7 +57,7 @@ withConn connStr = bracket (new connStr) release
     rethrowFunc :: ConnectionError -> IO a
     rethrowFunc e = do
       putStrLn @Text "Can't acquire resources for database connection!"
-      throwM e
+      failGracefully (SomeException e)
 
 withPool :: DbConfig -> DbPoolSettings -> (Pool -> IO ()) -> IO ()
 withPool (mkConnStr -> connStr) (DbPoolSettings size timeout) =
@@ -68,7 +68,7 @@ withPool (mkConnStr -> connStr) (DbPoolSettings size timeout) =
     rethrowFunc :: UsageError -> IO a
     rethrowFunc e = do
       putStrLn @Text "Can't acquire database connection pool!"
-      throwM e
+      failGracefully (SomeException e)
 
 run :: (HasPool env Pool, MonadThrow m, MonadReader env m, MonadIO m
         ) => Transaction a -> m a

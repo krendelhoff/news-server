@@ -20,6 +20,7 @@ import Universum
 
 import Data.Time (NominalDiffTime)
 import Types.TH
+import TextShow (TextShow)
 
 newIntType  "PoolSize"
 newIntType  "ConnTimeout"
@@ -28,9 +29,8 @@ newTextType "DbUser"
 newTextType "DbName"
 newTextType "DbPassword"
 
-newtype Port = Port Word16 deriving stock (Eq, Show, Generic)
-                           deriving newtype (Ord, Num, FromJSON)
-deriveTextShow ''Port
+newtype Port = Port Word16 deriving stock (Eq, Generic)
+                           deriving newtype (Show, TextShow, Ord, Num, FromJSON)
 
 data DbPoolSettings = DbPoolSettings
   { _size    :: PoolSize

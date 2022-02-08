@@ -118,7 +118,7 @@ makeKnown ''Format
 
 data ReqBody (f :: Format) (a :: Type)
 
-data NoContent = NoContent
+data NoContent = NoContent deriving (Eq, Show)
 
 instance ToJSON NoContent where
   toJSON _ = object []

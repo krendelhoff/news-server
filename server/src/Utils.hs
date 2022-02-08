@@ -9,7 +9,8 @@
 module Utils where
 
 import Control.Lens    (Iso', iso)
-import Crypto.Hash     (SHA256(SHA256), hashWith)
+import Crypto.Hash     (hashWith)
+import Crypto.Hash.Algorithms (Blake2b_256(Blake2b_256))
 import Data.Aeson      (encode)
 import Data.List       (lookup)
 import Data.Time       (addUTCTime)
@@ -33,10 +34,14 @@ type family Elem (lst :: [a]) (el :: a) where
   Elem (a ': xs) a = 'True
   Elem (x ': xs) a = Elem xs a
 
-parseToken :: ByteString -> Either TokenError AccessToken
+infixl 1 =>>
+(=>>) :: Monad m => m a -> (a -> m b) -> m a
+m =>> f = m >>= ((<$) <$> id <*> f)
+
+parseToken :: ByteString -> Maybe AccessToken
 parseToken (((fromText . T.strip <$>) . decodeUtf8' <$>)
-             . B.break isSpace -> ("Bearer", Right token)) = Right token
-parseToken _ = Left BadToken
+             . B.break isSpace -> ("Bearer", Right token)) = Just token
+parseToken _ = Nothing
 
 getCurrentTime :: MonadIO m => m CurrentTime
 getCurrentTime = liftIO Time.getCurrentTime <&> fromUTCTime
@@ -46,4 +51,4 @@ getRandomBytes = liftIO . Crypto.getRandomBytes
 
 hash :: Password -> Hash
 hash = fromText . fromString
-     . show . hashWith SHA256 . encodeUtf8 @Text @ByteString . toText
+     . show . hashWith Blake2b_256 . encodeUtf8 @Text @ByteString . toText

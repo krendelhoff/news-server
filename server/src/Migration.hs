@@ -15,10 +15,9 @@ import Hasql.Transaction.Sessions
     , Mode(Write)
     , transaction
     )
+import Infrastructure             (failGracefully)
 import Paths_server               (getDataDir)
 import Universum                  hiding (use)
-
-import Infrastructure
 
 applyMigrations :: Pool -> IO ()
 applyMigrations pool = do
@@ -28,5 +27,5 @@ applyMigrations pool = do
     >>= traverse ( use pool
                  . transaction Serializable Write
                  . runMigration ) >>= traverse_ \case
-    Left usageError -> throwM usageError
-    Right result    -> maybe pass throwM result
+    Left migrationError -> failGracefully (SomeException migrationError)
+    Right result        -> maybe pass (failGracefully . SomeException) result

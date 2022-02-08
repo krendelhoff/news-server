@@ -244,7 +244,7 @@ serve h s req@(requestMethod -> m) respond
     Nothing -> respond $ toResponse err404
     Just handler -> do
       let safeHandler = handler `catch` \(e :: SomeException) -> do
-            liftIO $ _log h $ fromString $ show e
+            liftIO $ _log h $ fromString $ displayException e
             return $ toResponse err500
       runExceptT (runHandler safeHandler)
         >>= either (respond . toResponse) respond

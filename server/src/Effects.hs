@@ -5,6 +5,7 @@ module Effects ( AcquireUser
                , GenRandom
                , CanReject(..)
                , PersistAuthor
+               , AcquireAuthor
                , AcquireCategory
                , PersistCategory
                ) where

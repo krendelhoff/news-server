@@ -17,11 +17,17 @@ import Types.Environment
 
 import qualified Types.Users as Users
 
-import qualified Server.Auth            as Auth
-import qualified Server.User.Categories as Categories
-import qualified Server.Admin.Authors   as Authors
-import qualified Server.User.Pictures   as Pictures
-import qualified Server.User.Users      as Users
+import qualified Server.Auth  as Auth
+import qualified Server.User  as User
+import qualified Server.Admin as Admin
+
+
+type API = Auth.API :<|> (AuthUser AuthData  :> RefreshAPI)
+                    :<|> (AuthUser AuthData  :> User.API)
+                    :<|> (AuthAdmin AuthData :> Admin.API)
+
+server :: ServerT API App
+server = Auth.server :<|> authRefreshServer :<|> authUserServer :<|> authAdminServer
 
 class ThrowAll a where
   throwAll :: ServerError -> a
@@ -52,25 +58,14 @@ instance FromAuth AuthData where
   fromRawAuth (RawAuthData uid token rToken iA authT) =
     AuthData (fromUUID uid) (fromText token) (fromText rToken) (fromBool iA) authT
 
-
-type UserAPI = Categories.API
-
-userServer :: ServerT UserAPI (AuthenticatedApp '[User])
-userServer = Categories.server
-
-authUserServer :: AuthResult AuthData -> ServerT UserAPI App
+authUserServer :: AuthResult AuthData -> ServerT User.API App
 authUserServer NotFound                                  = throwAll err401
 authUserServer TokenExpired                              = throwAll err403TokenExpired
-authUserServer (AuthSuccess (AuthData uid _ _ _ Access)) = runAuthenticated uid userServer
+authUserServer (AuthSuccess (AuthData uid _ _ _ Access)) = runAuthenticated uid User.server
 authUserServer _ = throwAll err403
 
-type AdminAPI = Authors.API
-
-adminServer :: ServerT AdminAPI (AuthenticatedApp '[Admin, User])
-adminServer = Authors.server
-
-authAdminServer :: AuthResult AuthData -> ServerT AdminAPI App
-authAdminServer (AuthSuccess (AuthData uid _ _ (toBool -> True) Access)) = runAuthenticated uid adminServer
+authAdminServer :: AuthResult AuthData -> ServerT Admin.API App
+authAdminServer (AuthSuccess (AuthData uid _ _ (toBool -> True) Access)) = runAuthenticated uid Admin.server
 authAdminServer _                                                        = throwAll err404
 
 type RefreshAPI = Auth.RefreshAPI
@@ -78,10 +73,3 @@ type RefreshAPI = Auth.RefreshAPI
 authRefreshServer :: AuthResult AuthData -> ServerT RefreshAPI App
 authRefreshServer (AuthSuccess (AuthData uid _ _ _ Refresh)) = runAuthenticated uid Auth.refresh
 authRefreshServer _                                          = throwAll err401
-
-type API = Auth.API :<|> (AuthUser AuthData  :> RefreshAPI)
-                    :<|> (AuthUser AuthData  :> UserAPI)
-                    :<|> (AuthAdmin AuthData :> AdminAPI)
-
-server :: ServerT API App
-server = Auth.server :<|> authRefreshServer :<|> authUserServer :<|> authAdminServer

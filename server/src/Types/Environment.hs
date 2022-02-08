@@ -30,6 +30,7 @@ import qualified Types.Users as Users
 data Config = Config
   { _dbConfig       :: DbConfig
   , _dbPoolSettings :: DbPoolSettings
+  , _doLogging      :: Bool
   , _logLevel       :: Level
   , _port           :: Port
   } deriving stock (Eq, Show, Generic)
