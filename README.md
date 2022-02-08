@@ -42,7 +42,63 @@ GRANT USAGE ON SCHEMA public TO user_name;
 GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO user_name;
 GRANT SELECT, INSERT, DELETE, UPDATE ON ALL TABLES IN SCHEMA public TO user_name;
 ```
-Done!nses.hs` - contains some lens helpers
+Done! You can leave psql with `\q`.
+
+To run server, you have to provide configuration file either by passing command-line argument or by creating file called "config.yaml" at the root of the project.
+```
+stack run -- -c <config_path> 
+```
+
+To run tests, use can use:
+```
+stack test
+```
+
+## Migrations
+
+All migrations are located at `server/migrations/` folder.
+
+## Logging 
+There are four levels of logging verbosity:
+- Error - critical errors that lead to program or request handling halting
+- Warn - recoverable errors
+- Info - notifications about current actions
+- Debug - debug information
+
+## Test data
+
+Test data is located in `/test-data/test.sql` to fill database with test data use `--test-data` or `-t` with path to `test.sql` file:
+
+```
+stack run -- -t <test data path> 
+```
+
+or
+
+```
+stack exec -- server-exe -t <test data path> 
+```
+
+WARNING: You can only apply test data once.
+
+## CURLS
+
+CURL scripts are located in `/scripts/` folder.
+
+## Project structure 
+
+- `server-lib`
+  - `src/`
+    - `DB.hs` - contains DB related helper functions
+    - `Errors.hs` - contains server error definitions
+    - `Router.hs` - contains type-level routing implementation
+    - `Infrastructure.hs` - namespace with all necessary server-lib functions
+    - `Utils.hs` - contains project utility functions.
+    - `Types/` 
+      - `TH.hs` - contains Template Haskell macros for specialized type creation
+      - `Router.hs` - contains router related types
+      - `DB.hs` - contains DB related types
+      - `Lenses.hs` - contains some lens helpers
       - `Infrastructure` - namespace with all necessary server-lib types
       - `TH/`
         - `Classes.hs` - contains Template Haskell macros for typeclass definition and instances creation
