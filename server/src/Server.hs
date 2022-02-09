@@ -1,11 +1,13 @@
 {-# LANGUAGE DataKinds              #-}
 {-# LANGUAGE FlexibleInstances      #-}
 {-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE OverloadedStrings      #-}
 {-# LANGUAGE MultiParamTypeClasses  #-}
 {-# LANGUAGE TypeOperators          #-}
 {-# LANGUAGE TypeSynonymInstances   #-}
 {-# LANGUAGE UndecidableInstances   #-}
 {-# LANGUAGE ViewPatterns           #-}
+{-# LANGUAGE BangPatterns #-}
 module Server where
 
 import Universum
@@ -21,13 +23,19 @@ import qualified Server.Auth  as Auth
 import qualified Server.User  as User
 import qualified Server.Admin as Admin
 
+type AuthenticatedAPI = RefreshAPI
+                   :<|> User.API
+                   :<|> Admin.API
 
-type API = Auth.API :<|> (AuthUser AuthData  :> RefreshAPI)
-                    :<|> (AuthUser AuthData  :> User.API)
-                    :<|> (AuthAdmin AuthData :> Admin.API)
+type API = Auth.API :<|> Auth AuthData :> AuthenticatedAPI
 
 server :: ServerT API App
-server = Auth.server :<|> authRefreshServer :<|> authUserServer :<|> authAdminServer
+server = Auth.server :<|> authenticatedServer
+
+authenticatedServer :: AuthResult AuthData -> ServerT AuthenticatedAPI App
+authenticatedServer auth = authRefreshServer auth
+                      :<|> authUserServer    auth
+                      :<|> authAdminServer   auth
 
 class ThrowAll a where
   throwAll :: ServerError -> a
@@ -60,6 +68,8 @@ instance FromAuth AuthData where
 
 authUserServer :: AuthResult AuthData -> ServerT User.API App
 authUserServer NotFound                                  = throwAll err401
+authUserServer NoToken                                   = throwAll err401
+authUserServer BadToken                                  = throwAll err403TokenInvalid
 authUserServer TokenExpired                              = throwAll err403TokenExpired
 authUserServer (AuthSuccess (AuthData uid _ _ _ Access)) = runAuthenticated uid User.server
 authUserServer _ = throwAll err403

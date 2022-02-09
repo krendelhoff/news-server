@@ -4,13 +4,14 @@
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings          #-}
+{-# LANGUAGE StandaloneDeriving         #-}
+{-# LANGUAGE TemplateHaskell            #-}
 {-# LANGUAGE TypeSynonymInstances       #-}
-{-# LANGUAGE StandaloneDeriving #-}
 module Errors where
 
 import Data.Aeson         (ToJSON, encode)
 import Hasql.Connection   (ConnectionError)
-import Hasql.Migration    (MigrationError (..))
+import Hasql.Migration    (MigrationError(..))
 import Network.HTTP.Types
     ( Status
     , status400
@@ -25,60 +26,64 @@ import Universum
 import qualified Data.ByteString.Char8 as BC
 import qualified Hasql.Pool            as Pool
 
+import Types.TH (newTextType)
+
 -- HTTP
 
-data ServerError = ServerError Status Message
+newTextType "ErrorMessage"
+
+data ServerError = ServerError Status Messages
   deriving (Eq, Show, Exception)
 
 toResponse :: ServerError -> Response
 toResponse (ServerError st m) =
   responseLBS st [("Content-type", "application/json; charset=utf-8")] (encode m)
 
-mkError :: Status -> Message -> ServerError
-mkError = ServerError
+mkError :: Status -> [ErrorMessage] -> ServerError
+mkError st = ServerError st . Messages
 
 err404 :: ServerError
-err404 = mkError status404 "Not found"
+err404 = mkError status404 ["Not found"]
 
 err400 :: ServerError
-err400 = mkError status400 "Bad request"
+err400 = mkError status400 ["Bad request"]
 
 err500 :: ServerError
-err500 = mkError status500 "Internal Error"
+err500 = mkError status500 ["Internal Error"]
 
 err401 :: ServerError
-err401 = mkError status401 "Unauthorized"
+err401 = mkError status401 ["Unauthorized"]
 
 err403 :: ServerError
-err403 = mkError status403 "Access denied"
+err403 = mkError status403 ["Access denied"]
 
 err400BadMethod :: ServerError
-err400BadMethod = mkError status400 "Bad method"
+err400BadMethod = mkError status400 ["Bad method"]
 
 err400BadReqBody :: ServerError
-err400BadReqBody = mkError status400 "Bad request body"
+err400BadReqBody = mkError status400 ["Can't parse request body"]
 
 err400BadCapture :: String -> ServerError
-err400BadCapture cid = mkError status400 $ "Bad " <> fromString cid
+err400BadCapture cid = mkError status400 ["Bad " <> fromString cid]
 
 err400BadQueryParam :: String -> ServerError
-err400BadQueryParam s = mkError status400 $ "Bad " <> fromString s
+err400BadQueryParam s = mkError status400 ["Bad " <> fromString s]
 
 err403TokenExpired :: ServerError
-err403TokenExpired = mkError status403 "Token expired"
+err403TokenExpired = mkError status403 ["Token expired"]
 
 err403TokenInvalid :: ServerError
-err403TokenInvalid = mkError status403 "Token invalid"
+err403TokenInvalid = mkError status403 ["Token invalid"]
 
 failGracefully :: SomeException -> IO a
 failGracefully e = do
   putStrLn (displayException e)
   exitFailure
 
-newtype Message = Message { message :: Text }
+newtype Messages = Messages { messages :: [ErrorMessage] }
   deriving stock (Eq, Show, Generic)
   deriving anyclass (ToJSON)
-  deriving newtype (IsString, Semigroup, Monoid)
+  deriving newtype (Semigroup, Monoid)
 
 -- Database
 
@@ -93,4 +98,4 @@ instance Exception MigrationError where
 
 instance Exception Pool.UsageError where
   displayException (Pool.ConnectionError connErr) = displayException connErr
-  displayException (Pool.SessionError queryErr) = displayException queryErr
+  displayException (Pool.SessionError queryErr)   = displayException queryErr

@@ -14,8 +14,8 @@ module Types.DB where
 
 import Control.Lens.TH (makeFieldsNoPrefix)
 import Data.Aeson      (FromJSON)
+import Deriving.Aeson.Stock
 import TextShow.TH
-import Deriving.Aeson
 import Universum
 
 import Data.Time (NominalDiffTime)
@@ -23,21 +23,24 @@ import Types.TH
 import TextShow (TextShow)
 
 newIntType  "PoolSize"
-newIntType  "ConnTimeout"
 newTextType "HostName"
 newTextType "DbUser"
 newTextType "DbName"
 newTextType "DbPassword"
 
-newtype Port = Port Word16 deriving stock (Eq, Generic)
-                           deriving newtype (Show, TextShow, Ord, Num, FromJSON)
+newtype Port = Port Word16
+  deriving stock (Eq, Generic)
+  deriving newtype (Show, TextShow, Ord, Num, FromJSON)
+
+newtype ConnTimeout = ConnTimeout NominalDiffTime
+  deriving stock (Eq, Generic)
+  deriving newtype (Show, Ord, Num, FromJSON)
 
 data DbPoolSettings = DbPoolSettings
   { _size    :: PoolSize
   , _timeout :: ConnTimeout
   } deriving stock (Eq, Show, Generic)
-    deriving (FromJSON)
-    via (CustomJSON '[FieldLabelModifier '[StripPrefix "_"]] DbPoolSettings)
+    deriving (FromJSON) via (Prefixed "_" DbPoolSettings)
 makeFieldsNoPrefix ''DbPoolSettings
 
 data DbConfig = DbConfig
@@ -47,8 +50,7 @@ data DbConfig = DbConfig
   , _dbName     :: DbName
   , _dbPassword :: DbPassword
   } deriving stock (Eq, Show, Generic)
-    deriving (FromJSON)
-    via (CustomJSON '[FieldLabelModifier '[StripPrefix "_"]] DbConfig)
+    deriving (FromJSON) via (Prefixed "_" DbConfig)
 makeFieldsNoPrefix ''DbConfig
 
 type ConnectionString = ByteString

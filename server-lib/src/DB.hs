@@ -1,10 +1,7 @@
 {-# LANGUAGE FlexibleContexts     #-}
 {-# LANGUAGE FlexibleInstances    #-}
 {-# LANGUAGE TypeApplications     #-}
-{-# LANGUAGE ImplicitParams       #-}
-{-# LANGUAGE LambdaCase           #-}
 {-# LANGUAGE OverloadedStrings    #-}
-{-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE ViewPatterns         #-}
 module DB ( Transaction
           , singletonStatement
@@ -19,13 +16,11 @@ module DB ( Transaction
           , withConn
           ) where
 
-import Hasql.Connection           (Connection, acquire, release)
-import Hasql.Pool                 (Pool)
+import Hasql.Connection           (Connection, acquire, release, ConnectionError)
 import TextShow                   (showt)
-import Errors                     (failGracefully)
-import Hasql.Connection           (ConnectionError)
+import Data.Coerce                (coerce)
 import Hasql.TH
-import Hasql.Pool                 (UsageError)
+import Hasql.Pool                 (Pool, UsageError)
 import Hasql.Transaction          (Transaction, statement)
 import Hasql.Transaction.Sessions
     ( IsolationLevel(Serializable)
@@ -38,6 +33,7 @@ import qualified Hasql.Pool as Pool
 import qualified Data.Text as T
 
 import Types.DB
+import Errors                     (failGracefully)
 import Types.TH
 import Types.Lenses (HasPool(..))
 
@@ -64,7 +60,7 @@ withPool (mkConnStr -> connStr) (DbPoolSettings size timeout) =
   (`catch` rethrowFunc) . bracket (Pool.acquire settings) Pool.release
   where
     settings =
-      (fromIntegral . toInt $ size, fromIntegral . toInt $ timeout, connStr)
+      (fromIntegral . toInt $ size, coerce timeout, connStr)
     rethrowFunc :: UsageError -> IO a
     rethrowFunc e = do
       putStrLn @Text "Can't acquire database connection pool!"

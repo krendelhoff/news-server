@@ -20,7 +20,7 @@ server :: ServerT API (AuthenticatedApp '[User])
 server = persist
 
 type API = "pictures" :> ReqBody 'Raw BL.ByteString
-         :> Post Payload
+                      :> Post Payload
 
 persist :: PersistPicture m => BL.ByteString -> m Payload
 persist = (Payload <$>) . Pictures.persist

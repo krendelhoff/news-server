@@ -9,9 +9,9 @@ import Universum hiding (get, toText)
 
 import Effects
 import Infrastructure
-import Server.Errors     (categoryNotFoundError)
 import Types.Auth
 import Types.Utils
+import Server.Errors
 import Types.Categories
 import Types.Environment (AuthenticatedApp)
 
@@ -35,11 +35,10 @@ get _ =
   >=> maybe (reject categoryNotFoundError) (return . SumA)
 
 
-type CreateAPI = "create" :> ReqBody 'JSON CreateForm
-                          :> Post Payload
+type CreateAPI = ReqBody 'JSON CreateForm :> Post Payload
 
 create :: PersistCategory m => CreateForm -> m Payload
 create (CreateForm title mParent) =
   Categories.create title mParent >>= \case
-    Nothing  -> reject (mkError status403 "Category name is not unique")
+    Nothing  -> reject titleIsNotUnique
     Just cat -> return cat

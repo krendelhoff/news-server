@@ -22,7 +22,7 @@ import Server            (API, server)
 import Server.Auth       (authenticate)
 import Types.Environment
 import Utils             (parseToken, (=>>))
-import Data.Coerce (coerce)
+import Data.Coerce       (coerce)
 
 main :: IO ()
 main = do

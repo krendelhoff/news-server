@@ -33,10 +33,13 @@ remove (toUUID -> cid) = NoContent <$ statement cid [resultlessStatement|
                                                     |]
 
 isItUnique :: Text -> Maybe UUID -> Transaction Bool
-isItUnique title mSupercat = statement (title, mSupercat)
+isItUnique title mSupercat = not <$> statement (title, mSupercat)
   [singletonStatement|
     SELECT EXISTS( SELECT * FROM categories
-                   WHERE title=$1::text AND supercategory=$2::uuid?
+                   WHERE title=$1::text AND ((supercategory IS NULL
+                                          AND $2::uuid? IS NULL) OR
+                                              supercategory=$2::uuid?
+                                            )
                   )::bool
   |]
 
@@ -47,12 +50,14 @@ create (toText -> title) ((toUUID <$>) -> mSupercat) = do
                                                . (,title,mSupercat)
     False -> return Nothing
   where
-    createCat title mSuperCat = statement (title, mSuperCat)
-      [singletonStatement|
-        INSERT INTO categories (title, supercategory)
-        VALUES ($1::text,$2::uuid?)
-        RETURNING id::uuid
-      |]
+    createCat title mSuperCat = do
+      supercat <- maybe (toUUID <$> rootID) return mSuperCat
+      statement (title, supercat)
+        [singletonStatement|
+          INSERT INTO categories (title, supercategory)
+          VALUES ($1::text,$2::uuid)
+          RETURNING id::uuid
+        |]
 
 
 rename :: ID -> Title -> Transaction (Maybe Payload)

@@ -54,4 +54,4 @@ data AuthData = AuthData
   }
 deriveWeb "authData" ''AuthData
 
-data Auth = Admin | User
+data Rights = Admin | User

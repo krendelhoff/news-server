@@ -8,7 +8,7 @@ import Universum
 
 import Effects.CanReject (CanReject)
 import Infrastructure    (NoContent, run)
-import Types.Auth        (Auth(Admin))
+import Types.Auth        (Rights(Admin))
 import Types.Authors     (Description, ID, Payload)
 import Types.Environment (AuthenticatedApp)
 import Utils             (Elem)

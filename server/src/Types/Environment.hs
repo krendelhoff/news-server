@@ -22,7 +22,7 @@ import Universum
 import qualified Hasql.Pool as HaSQL
 
 import Infrastructure
-import Types.Auth     (Auth)
+import Types.Auth     (Rights)
 import Types.Logger   (HasLogger(logger), Level, Logger(Logger))
 
 import qualified Types.Users as Users
@@ -55,7 +55,7 @@ deriving newtype instance MonadError ServerError m =>
 
 type App = AppM Environment Handler
 
-newtype AuthenticatedApp (rights :: [Auth]) a =
+newtype AuthenticatedApp (rights :: [Rights]) a =
   AuthenticatedApp { runAuthApp :: ReaderT Users.ID App a }
   deriving newtype ( Functor, Applicative, Monad
                    , MonadError ServerError, MonadIO, MonadThrow

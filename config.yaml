@@ -12,7 +12,6 @@ dbConfig:
   dbPassword: ""
 
 dbPoolSettings:
-  # Size of the pool (Integer)
   size: 10
-  # An amount of time for which an unused resource is kept open. (Integer)
+  # An amount of time for which an unused resource is kept open. The smallest acceptable value is 0.5 seconds.
   timeout: 5

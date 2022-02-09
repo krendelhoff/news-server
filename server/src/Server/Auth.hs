@@ -8,12 +8,14 @@
 module Server.Auth where
 
 import Hasql.Pool (Pool)
-import Universum  hiding (toText)
+import Data.Coerce (coerce)
+import Universum   hiding (toText)
 
+import Effects
 import Infrastructure
 import Types.Auth
-import Effects
-import Types.Environment (App, AuthenticatedApp, HasUserId (getUserId))
+import Types.Environment (App, AuthenticatedApp, HasUserId(getUserId))
+import Server.Errors
 import Types.Logger      (Level(INFO))
 import Types.Users       (CreateForm(CreateForm))
 import Utils             (hash)
@@ -23,16 +25,15 @@ import qualified Utils         as RawUtils
 
 import qualified Database.Auth as DB
 
-
 type API = HelloAPI :<|> "auth" :> (CreateAPI :<|> LoginAPI)
 
 server :: ServerT API App
 server = hello :<|> create :<|> login
 
-type HelloAPI = Get Message
+type HelloAPI = Get Messages
 
-hello :: App Message
-hello = return "Hello!"
+hello :: App Messages
+hello = return $ coerce @[Text] @Messages ["Hello, World!"]
 
 type CreateAPI = "create" :> ReqBody 'JSON CreateForm :> Post AuthPayload
 
@@ -44,13 +45,13 @@ create (CreateForm name surname login mAvatar password) =
       expirationDate <- Utils.getExpirationDate
       run (DB.create name surname login mAvatar password)
         >>= run . DB.issueToken expirationDate (fromBool False) tokens
-    _       -> reject (mkError status403 "User already exists")
+    _       -> reject userAlreadyExistsError
 
 type LoginAPI = "login" :> ReqBody 'JSON LoginForm :> Post AuthPayload
 
 login :: LoginForm -> App AuthPayload
 login (LoginForm userLogin password) = run (DB.login userLogin password) >>= \case
-    Nothing -> reject (mkError status401 "User not found")
+    Nothing -> reject userNotFoundError
     Just (LoginInfo user rights) -> do
       exprDate <- Utils.getExpirationDate
       log INFO $ "User " <> toText userLogin <> " made login"

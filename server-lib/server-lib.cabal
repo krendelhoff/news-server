@@ -60,6 +60,7 @@ library
     , time
     , universum
     , uuid
+    , validation
     , wai
     , warp
     , yaml

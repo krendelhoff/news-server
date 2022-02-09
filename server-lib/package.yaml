@@ -34,6 +34,7 @@ dependencies:
 - hasql-transaction
 - hasql-th
 - yaml
+- validation
 - uuid
 - http-types
 - http-api-data

@@ -26,6 +26,7 @@ import qualified Data.ByteString.Lazy as BL
 
 import Errors           (ServerError)
 import Types.TH.Classes (makeKnown, makeKnown', stripModifier)
+import Web.HttpApiData (FromHttpApiData)
 
 newtype Handler a = Handler
   { runHandler :: ExceptT ServerError IO a }
@@ -35,8 +36,19 @@ newtype Handler a = Handler
 
 type Path = [Text]
 
-data AuthUser (a :: Type)
-data AuthAdmin (a :: Type)
+data Auth (a :: Type)
+--data AuthAdmin (a :: Type)
+
+data RawRoute where
+  RawQueryP :: FromHttpApiData a => String  -> Proxy a       -> ByteString    -> RawRoute
+  RawCapt   :: FromHttpApiData a => String  -> Proxy a       -> Text          -> RawRoute
+  RawReqB   :: FromJSON a        =>            Proxy a       -> BL.ByteString -> RawRoute
+
+data Route where
+  QueryP :: FromHttpApiData a => String  -> a      -> Route
+  Capt   :: FromHttpApiData a => String  -> a      -> Route
+  ReqB   :: FromJSON a        =>            a      -> Route
+--  Capt
 
 -- instance Semigroup Auth where
 --   NoAuth <> x  = x
@@ -54,16 +66,17 @@ data AuthAdmin (a :: Type)
 -- Data constructor not in scope: Auth :: Auth
 
 data RawAuthData = RawAuthData
-  { _userId       :: UUID
-  , _token        :: Text
-  , _refreshToken :: Text
-  , _isAdmin      :: Bool
-  , _authType     :: AuthType
-  }
+  { _userId       :: !UUID
+  , _token        :: !Text
+  , _refreshToken :: !Text
+  , _isAdmin      :: !Bool
+  , _authType     :: !AuthType
+  } deriving (Eq, Show)
 
 data AuthType = Access | Refresh deriving (Eq, Show, Generic, FromJSON, ToJSON)
 
-data AuthResult a = NotFound | TokenExpired | AuthSuccess a deriving Functor
+data AuthResult a = NoToken | BadToken | NotFound | TokenExpired | AuthSuccess a
+  deriving stock (Functor, Eq, Show)
 
 --instance Functor AuthResult where
 --  fmap f NotFound        = NotFound
@@ -82,6 +95,7 @@ data RoutingEnv = RoutingEnv { _path     :: Path
                              , _headers  :: RequestHeaders
                              , _body     :: BL.ByteString
                              , _handle   :: ServingHandle
+                             , _racc     :: [Route]
                              }
 makeLenses ''RoutingEnv
 
@@ -92,6 +106,7 @@ data SMethod (m :: StdMethod) where
   SDelete :: SMethod 'DELETE
 
 makeKnown' (stripModifier "Std") ''StdMethod
+
 
 data Verb (m :: StdMethod) (code :: Nat) (f :: Format) (a :: Type)
 
