@@ -218,7 +218,7 @@ instance (FromAuth a, HasServer r) => HasServer (AuthAdmin a :> r) where
         case route @r (handlerF $ fromRawAuth <$> authResult) req of
           Nothing -> throwError err500
           Just hR -> hR
-  route _ _ = Just $ throwError err404 -- that's why we need extra AuthAdmin
+  route _ _ = Just $ throwError err404 -- NOTE that's why we need extra AuthAdmin
                                        -- not err401 but err404
   unlift :: (forall x. m x -> n x) -> (AuthResult a -> ServerT r m) -> (AuthResult a -> ServerT r n)
   unlift f g = unlift @r f . g

@@ -1,5 +1,5 @@
 # Port to run server
-port: 7988
+port: 7980
 
 doLogging: true
 logLevel: "INFO"

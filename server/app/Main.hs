@@ -22,6 +22,7 @@ import Server            (API, server)
 import Server.Auth       (authenticate)
 import Types.Environment
 import Utils             (parseToken, (=>>))
+import Data.Coerce (coerce)
 
 main :: IO ()
 main = do
@@ -61,10 +62,12 @@ launchLogger conf = newLogger =>> forkIO . mkLoggingThread loggerConf
                      else NoLogging
 
 mkWarpSettings :: Port -> Warp.Settings
-mkWarpSettings portNumber =
-  Warp.setBeforeMainLoop (putStrLn @Text message) Warp.defaultSettings
+mkWarpSettings portNumber = Warp.setBeforeMainLoop action settings
   where
     message = "Server initialized at localhost:" <> show portNumber
+    action = putStrLn @Text message
+    settings =
+      Warp.setPort (fromIntegral . coerce @Port @Word16 $ portNumber) Warp.defaultSettings
 
 mkServingHandle :: Pool -> Logger -> ServingHandle
 mkServingHandle pool logger = ServingHandle

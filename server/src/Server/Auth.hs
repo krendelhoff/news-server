@@ -24,10 +24,15 @@ import qualified Utils         as RawUtils
 import qualified Database.Auth as DB
 
 
-type API = "auth" :> (CreateAPI :<|> LoginAPI)
+type API = HelloAPI :<|> "auth" :> (CreateAPI :<|> LoginAPI)
 
 server :: ServerT API App
-server = create :<|> login
+server = hello :<|> create :<|> login
+
+type HelloAPI = Get Message
+
+hello :: App Message
+hello = return "Hello!"
 
 type CreateAPI = "create" :> ReqBody 'JSON CreateForm :> Post AuthPayload
 

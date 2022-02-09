@@ -1,5 +1,6 @@
 curl "localhost:3000/users/create" \
    -X POST \
+   -H "Content-type: application/json"
    --data '{"name":"Savely","surname":"Krendelhoff","login":"krendelhoff","password":"test123"}'
 
 curl "localhost:3000/auth/login" \
