@@ -31,7 +31,6 @@ type UpdateAPI = Capture "category_id" ID :> QueryParam "title" Title
                                           :> QueryParam "parent" ID
                                           :> Put Payload
 
--- FIXME add validation
 update :: PersistCategory m => ID -> Maybe Title -> Maybe ID -> m Payload
 update mCat mT mP = Categories.get mCat >>= \case
   Nothing                -> reject categoryNotFoundError

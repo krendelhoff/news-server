@@ -259,6 +259,7 @@ parseCaptureRoute :: forall a. FromHttpApiData a => String -> Proxy a
 parseCaptureRoute s _ = (Capt @a s <$>) . parseCapture s
 
 -- TODO beautiful CODE MAN
+-- TODO fix routing - recursive query param incorrect leads to not found
 serve :: forall layout. HasServer layout =>
   ServingHandle -> Server layout -> Application
 serve h s req@(requestMethod -> rawMethod) respond =

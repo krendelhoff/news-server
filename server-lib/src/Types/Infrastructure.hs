@@ -6,6 +6,7 @@ module Types.Infrastructure ( module Types.Lenses
                             , status400
                             , status403
                             , status401
+                            , status406
                             , status500
                             , status404
                             , StdMethod(..)

@@ -15,10 +15,8 @@ update :: ID -> Description -> Transaction Payload
 update (toUUID -> uid) (toText -> desc) =
   encodePayload <$> statement (uid, desc)
   [singletonStatement|
-     INSERT INTO authors (user_id,description)
-     VALUES ($1::uuid,$2::text)
-     ON CONFLICT ON CONSTRAINT authors_pkey
-     DO UPDATE SET description=$2::text
+     UPDATE authors SET description=$2::text
+     WHERE user_id = $1::uuid
      RETURNING user_id::uuid,description::text
   |]
 

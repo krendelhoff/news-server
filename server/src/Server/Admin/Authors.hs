@@ -21,18 +21,20 @@ server :: ServerT API (AuthenticatedApp '[Admin, User])
 server = downgrade :<|> update
                    :<|> get
 
-type DowngradeAPI = "downgrade" :> Capture "author_id" ID
-                                :> Verb 'PUT 204 'JSON NoContent
+type DowngradeAPI = Capture "author_id" ID :> Verb 'DELETE 204 'JSON NoContent
 
 downgrade :: PersistAuthor m => ID -> m NoContent
-downgrade = Authors.downgrade
+downgrade = Authors.get >=> \case
+  Nothing              -> reject authorNotFoundError
+  Just (Payload aid _) -> Authors.downgrade aid
 
-type UpdateAPI = "update" :> Capture "author_id" ID
-                          :> ReqBody 'JSON UpdateForm
-                          :> Post Payload
+type UpdateAPI = Capture "author_id" ID :> ReqBody 'JSON UpdateForm
+                                        :> Put Payload
 
 update :: PersistAuthor m => ID -> UpdateForm -> m Payload
-update aid (UpdateForm desc) = Authors.update aid desc
+update mAid (UpdateForm desc) = Authors.get mAid >>= \case
+  Nothing              -> reject authorNotFoundError
+  Just (Payload aid _) -> Authors.update aid desc
 
 
 type GetAPI = Capture "author_id" ID :> Get Payload

@@ -29,19 +29,10 @@ Enter psql utility as superuser and create two users: one admin for database cha
 ```
 psql -d database_name
 
-CREATE USER admin_name PASSWORD 'admin_pass';
 CREATE USER user_name PASSWORD 'user_pass';
+GRANT ALL PRIVILEGES ON DATABASE db_name TO user_name;
 ```
 
-Next you need to assign priveleges to created users:
-
-```
-GRANT ALL PRIVILEGES ON DATABASE db_name TO admin_name;
-GRANT CONNECT ON  DATABASE db_name TO user_name;
-GRANT USAGE ON SCHEMA public TO user_name;
-GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO user_name;
-GRANT SELECT, INSERT, DELETE, UPDATE ON ALL TABLES IN SCHEMA public TO user_name;
-```
 Done! You can leave psql with `\q`.
 
 To run server, you have to provide configuration file either by passing command-line argument or by creating file called "config.yaml" at the root of the project.
@@ -65,25 +56,9 @@ There are four levels of logging verbosity:
 - Info - notifications about current actions
 - Debug - debug information
 
-## Test data
-
-Test data is located in `/test-data/test.sql` to fill database with test data use `--test-data` or `-t` with path to `test.sql` file:
-
-```
-stack run -- -t <test data path> 
-```
-
-or
-
-```
-stack exec -- server-exe -t <test data path> 
-```
-
-WARNING: You can only apply test data once.
-
 ## CURLS
 
-CURL scripts are located in `/scripts/` folder.
+CURL scripts are located at `scripts/` folder.
 
 ## Project structure 
 
@@ -132,11 +107,32 @@ CURL scripts are located in `/scripts/` folder.
     
 ## API endpoints
 
-Request examples may be found at folder `/scripts`.
+Request examples may be found at folder `scripts/`.
+
+### Route agnostic responses
+
+For every endpoint:
+| Code | Description |
+| --- | --- |
+| `400` | **Bad request: can't parse request body, capture id or present query parameter** |
+
+For `User` protected endpoints:
+| Code | Description |
+| --- | --- |
+| `401` | **No authorization header or no such token present** |
+| `403` | **Token violates format or token expired** |
+
+For `Admin` protected endpoints:
+| Code | Description |
+| --- | --- |
+| `404` | **In case of any authorization problems** |
+
+Every response with error code is accompanied by explanatory messages.
+
 
 ### `/auth`
 
-#### `POST /auth/create`
+#### `POST /auth/register`
 
 **Permission**: `None`
 
@@ -145,7 +141,7 @@ Endpoint for user creation.
 Request body implements an interface:
 ```
 interface ICreateUserRequest {
-  name: string;
+{ name: string;
   surname: string;
   login: string;
   avatar: string?;      // ID of the picture in database
@@ -161,6 +157,12 @@ interface ICreateUserResponse {
   expires: timestamptz;
 }
 ```
+
+| Code | Description |
+| --- | --- |
+| `200` | **Created successfully** |
+
+[Example](./scripts/auth/register.sh)
 
 #### `POST /auth/login`
 
@@ -185,6 +187,13 @@ interface ILoginResponse {
 }
 ```
 
+| Code | Description |
+| --- | --- |
+| `200` | **Successful login** |
+| `404` | **User not found** |
+
+[Example](./scripts/auth/login.sh)
+
 #### `GET /auth/refresh`
 
 **Permission**: `User`
@@ -199,6 +208,12 @@ interface IRefreshResponse {
   token: string;
 }
 ```
+
+| Code | Description |
+| --- | --- |
+| `200` | **Token refreshed successfully** |
+
+[Example](./scripts/auth/refresh.sh)
 
 ### `/users`
 
@@ -221,6 +236,12 @@ interface IUserPayloadResponse {
 }
 ```
 
+| Code | Description |
+| --- | --- |
+| `200` | **Returns user payload successfully** |
+
+[Example](./scripts/users/get.sh)
+
 #### `DELETE /users/<user_id>` 
 
 **Permission**: `Admin`
@@ -232,7 +253,10 @@ Endpoint for deleting users. Returns empty response body with the following code
 | `204` | **Removed successfully** |
 | `404` | **User not found** |
 | `403` | **Not enough rights (attempt to delete an admin)** |
+
 Warning: Deleting user also deletes all entities related to deleted user.
+
+[Example](./scripts/users/delete.sh)
 
 ### `/pictures`
 
@@ -247,6 +271,12 @@ interface IPicturePayloadResponse {
   pictureId: string;
 }
 ```
+
+| Code | Description |
+| --- | --- |
+| `200` | **Picture uploaded successfully** |
+
+[Example](./scripts/pictures/persist.sh)
 
 ### `/categories`
 
@@ -266,6 +296,13 @@ interface IGetCategoryResponse {
   parent?: string;
 }
 ```
+
+| Code | Description |
+| --- | --- |
+| `200` | **Returns category payload successfully** |
+| `404` | **Category not found** |
+
+[Example](./scripts/categories/get.sh)
 
 #### `POST /categories`
 
@@ -290,6 +327,13 @@ interface ICreateCategoryResponse {
 }
 ```
 
+| Code | Description |
+| --- | --- |
+| `200` | **Returns category payload successfully** |
+| `406` | **Title is not unique error**             |
+
+[Example](./scripts/categories/create.sh)
+
 #### `DELETE /categories/<category_id>`
 
 **Permission** `Admin`
@@ -298,12 +342,16 @@ Endpoint for deleting categories. Returns empty response body with the following
 
 | Code | Description |
 | --- | --- |
-| `204` | **Removed successfully** |
+| `200` | **Removed successfully** |
 | `404` | **Category not found** |
 
-#### `PUT /categories`
+[Example](./scripts/categories/delete.sh)
+
+#### `PUT /categories/<category_id>`
 
 **Permission** `Admin`
+
+Endpoint for updating categories.
 
 Method accepts query parameters:
   - title: string
@@ -317,3 +365,67 @@ interface IUpdateCategoryResponse {
   parent?: string;
 }
 ```
+
+| Code | Description |
+| --- | --- |
+| `200` | **Updated successfully** |
+| `404` | **Category not found** |
+| `404` | **Rebase destination not found** |
+| `406` | **Rebase destination incorrect (forms a cycle)** |
+| `406` | **Title is not unique** |
+
+[Example](./scripts/categories/update.sh)
+
+### `/authors`
+
+#### `GET /authors/<author_id>` 
+
+**Permission** `Admin`
+
+Response body implements an interface:
+```
+interface IGetAuthorResponse {
+  userId: string;
+  description: string;
+}
+```
+
+| Code | Description |
+| --- | --- |
+| `200` | **Returns author payload successfully** |
+| `404` | **Author not found** |
+
+[Example](./scripts/authors/get.sh)
+
+#### `PUT /authors/<author_id>` 
+
+**Permission** `Admin`
+
+Request body implements an interface:
+```
+interface IUpdateCategoryRequest {
+  description: string;
+}
+```
+
+Returns empty response body.
+
+| Code | Description |
+| --- | --- |
+| `200` | **Returns updated author payload** |
+| `404` | **Author not found** |
+
+[Example](./scripts/authors/update.sh)
+
+#### `DELETE /authors/<author_id>` 
+
+**Permission** `Admin`
+
+Endpoint for downgrading authors to regular user.
+
+| Code | Description |
+| --- | --- |
+| `204` | **Downgraded author successfully** |
+| `404` | **Author not found** |
+
+[Example](./scripts/authors/downgrade.sh)
