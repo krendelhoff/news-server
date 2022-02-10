@@ -17,10 +17,10 @@
 {-# LANGUAGE TypeOperators         #-}
 {-# LANGUAGE UndecidableInstances  #-}
 {-# LANGUAGE ViewPatterns          #-}
-module Router ( HasServer(..)
+module Router {-( HasServer(..)
               , serve
               , FromAuth(fromRawAuth)
-              ) where
+              )-} where
 
 import Control.Applicative  (Alternative((<|>)))
 import Control.Monad.Except (MonadError, throwError)
@@ -78,6 +78,15 @@ class FromAuth a where
 -- more beautiful unit tests
 -- readme (test data + request examples (only examples) and codes)
 -- one more endpoint delete user
+-- TODO beautiful CODE MAN
+-- TODO fix routing - recursive query param incorrect leads to not found
+-- 
+--[ERROR] QueryError "INSERT INTO categories (title, supercategory) VALUES ($1 :: text, $2 :: 
+--uuid) RETURNING id :: uuid" ["\"Cartesian closed\"","27f372dc-91aa-4f24-8ec5-51c2b24ad6a5"] 
+--(ResultError (ServerError "23505" "duplicate key value violates unique constraint \"categori
+--es_title_supercategory_key\"" (Just "Key (title, supercategory)=(Cartesian closed, 27f372dc-
+--91aa-4f24-8ec5-51c2b24ad6a5) already exists.") Nothing))
+-- if categories same name on root
 
 -- type instance Server (QueryParams s a :> r) = Vector a -> Server r
 class HasServer layout where
@@ -106,6 +115,7 @@ instance (KnownMethod t, KnownNat code, ToJSON a
   unlift :: (forall x. m x -> n x) -> m a -> n a
   unlift f = f
   walk :: RoutingEnv -> Maybe [RawRoute]
+  walk (view path -> p)       | not . null $ p    = Nothing
   walk req@(view method -> m) | m == methodVal @t = Just []
   walk _ = Nothing
 
@@ -151,8 +161,8 @@ instance HasServer r => HasServer (ReqBody 'Raw BL.ByteString :> r) where
 parseQueryParam :: forall a. FromHttpApiData a => String -> ByteString
                                                -> Either [ErrorMessage] a
 parseQueryParam s =
-  either (Left . return . (("Can't parse query parameter " <> fromString s <> ": ") <>) . fromText)
-         Right  . parseHeader @a
+  first (return . (("Can't parse query parameter " <> fromString s <> ": ") <>) . fromText)
+        . parseHeader @a
 
 instance (KnownSymbol s, FromHttpApiData a, HasServer r
           ) => HasServer (QueryParam s a :> r) where
@@ -202,8 +212,8 @@ instance (KnownSymbol s, HasServer r) => HasServer ((s :: Symbol) :> r) where
 parseCapture :: forall a. FromHttpApiData a => String -> Text
                                             -> Either [ErrorMessage] a
 parseCapture s =
-  either (Left . return . (("Can't parse capture " <> fromString s <> ": ") <>) . fromText)
-         Right . parseUrlPiece @a
+  first (return . (("Can't parse capture " <> fromString s <> ": ") <>) . fromText)
+        . parseUrlPiece @a
 
 instance (FromHttpApiData a, HasServer r, KnownSymbol id
           ) => HasServer (Capture id a :> r) where
@@ -219,8 +229,7 @@ instance (FromHttpApiData a, HasServer r, KnownSymbol id
   unlift f g = unlift @r f . g
   walk :: RoutingEnv -> Maybe [RawRoute]
   walk req@(view path -> (x:xs)) =
-    walk @r (req & path .~ xs)
-    <&> (RawCapt (symbolVal (Proxy @id)) (Proxy @a) x :)
+    walk @r (req & path .~ xs) <&> (RawCapt (symbolVal (Proxy @id)) (Proxy @a) x :)
   walk _ = Nothing
 
 instance (FromAuth a, HasServer r) => HasServer (Auth a :> r) where
@@ -239,6 +248,11 @@ instance (FromAuth a, HasServer r) => HasServer (Auth a :> r) where
   walk :: RoutingEnv -> Maybe [RawRoute]
   walk = walk @r
 
+check :: Validation [ErrorMessage] [Route] -> Bool
+check x = case x of
+  Failure _ -> False
+  Success _ -> True
+
 parseRoute :: [RawRoute] -> Validation [ErrorMessage] [Route]
 parseRoute = foldr (\x acc ->
                        case x of
@@ -246,20 +260,18 @@ parseRoute = foldr (\x acc ->
                          RawCapt   s p t -> liftA2 (:) (fromEither (parseCaptureRoute s p t)) acc
                          RawReqB   p b   -> liftA2 (:) (fromEither (parseReqBRoute p b)) acc
                     ) (pure [])
+  where
+    parseReqBRoute :: forall a. FromJSON a => Proxy a -> BL.ByteString -> Either [ErrorMessage] Route
+    parseReqBRoute _ = (ReqB @a <$>) . parseReqB @a
+
+    parseQueryParamRoute :: forall a. FromHttpApiData a => String -> Proxy a
+                                                        -> ByteString -> Either [ErrorMessage] Route
+    parseQueryParamRoute s _ = (QueryP @a s <$>) . parseQueryParam @a s
+    parseCaptureRoute :: forall a. FromHttpApiData a => String -> Proxy a
+                                                    -> Text   -> Either [ErrorMessage] Route
+    parseCaptureRoute s _ = (Capt @a s <$>) . parseCapture @a s
 
 
-parseReqBRoute :: forall a. FromJSON a => Proxy a -> BL.ByteString -> Either [ErrorMessage] Route
-parseReqBRoute _ = (ReqB <$>) . parseReqB @a
-
-parseQueryParamRoute :: forall a. FromHttpApiData a => String -> Proxy a
-                                                    -> ByteString -> Either [ErrorMessage] Route
-parseQueryParamRoute s _ = (QueryP @a s <$>) . parseQueryParam s
-parseCaptureRoute :: forall a. FromHttpApiData a => String -> Proxy a
-                                                 -> Text   -> Either [ErrorMessage] Route
-parseCaptureRoute s _ = (Capt @a s <$>) . parseCapture s
-
--- TODO beautiful CODE MAN
--- TODO fix routing - recursive query param incorrect leads to not found
 serve :: forall layout. HasServer layout =>
   ServingHandle -> Server layout -> Application
 serve h s req@(requestMethod -> rawMethod) respond =
@@ -276,12 +288,12 @@ serve h s req@(requestMethod -> rawMethod) respond =
                                , _racc     = []
                                }
       case walk @layout reqInfo of
-        Nothing       -> respond $ toResponse err404
+        Nothing       -> respond (toResponse err404)
         Just rawRacc  -> case parseRoute rawRacc of
           Failure errs -> respond $ toResponse (mkError status400 errs)
           Success r    -> do
             case route @layout s (reqInfo & racc .~ r) of
-              Nothing -> respond $ toResponse err404
+              Nothing -> respond (toResponse err404)
               Just handler -> do
                 let safeHandler = handler `catch` \(e :: SomeException) -> do
                       liftIO $ _log h $ fromString $ displayException e

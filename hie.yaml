@@ -1,13 +1,3 @@
 cradle:
   stack:
-    - path: "server/src"
-      component: "server:lib"
-
-    - path: "server/app/Main.hs"
-      component: "server:exe:server"
-
-    - path: "server/app/Paths_server.hs"
-      component: "server:exe:server"
-
-    - path: "server-lib/src"
-      component: "server-lib:lib"
+    stackYaml: "stack.yaml"

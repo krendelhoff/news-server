@@ -9,7 +9,7 @@ import Effects
 import Infrastructure
 import Server.Errors     (authorNotFoundError)
 import Types.Auth
-import Types.Authors     (ID, Payload, UpdateForm(UpdateForm))
+import Types.Authors     (ID, Payload(..), UpdateForm(UpdateForm))
 import Types.Environment (AuthenticatedApp)
 
 import qualified Effects.Authors as Authors

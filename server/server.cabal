@@ -90,6 +90,9 @@ library
     , server-lib
     , stm
     , tagged
+    , tasty
+    , tasty-hedgehog
+    , tasty-hspec
     , template-haskell
     , text
     , text-show
@@ -143,6 +146,9 @@ executable server
     , server-lib
     , stm
     , tagged
+    , tasty
+    , tasty-hedgehog
+    , tasty-hspec
     , template-haskell
     , text
     , text-show

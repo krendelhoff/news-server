@@ -5,7 +5,8 @@ pkgs.mkShell
                                  pkgs.ghc
                                  pkgs.cabal-install
                                  pkgs.stack
-                                 #hls
+                                 pkgs.glibc
+                                 hls
                                  stylish-haskell
                                  hoogle
                                  nix-tree
