@@ -23,19 +23,18 @@ import qualified Server.Auth  as Auth
 import qualified Server.User  as User
 import qualified Server.Admin as Admin
 
-type AuthenticatedAPI = RefreshAPI
+type AuthenticatedAPI = Auth.RefreshAPI
                    :<|> User.API
-                   :<|> Admin.API
 
-type API = Auth.API :<|> Auth AuthData :> AuthenticatedAPI
+type API = Auth.API :<|> Auth 'Regular   AuthData :> AuthenticatedAPI
+                    :<|> Auth 'Protected AuthData :> Admin.API
 
 server :: ServerT API App
-server = Auth.server :<|> authenticatedServer
+server = Auth.server :<|> authenticatedServer :<|> authAdminServer
 
 authenticatedServer :: AuthResult AuthData -> ServerT AuthenticatedAPI App
 authenticatedServer auth = authRefreshServer auth
                       :<|> authUserServer    auth
-                      :<|> authAdminServer   auth
 
 class ThrowAll a where
   throwAll :: ServerError -> a
@@ -78,8 +77,7 @@ authAdminServer :: AuthResult AuthData -> ServerT Admin.API App
 authAdminServer (AuthSuccess (AuthData uid _ _ (toBool -> True) Access)) = runAuthenticated uid Admin.server
 authAdminServer _                                                        = throwAll err404
 
-type RefreshAPI = Auth.RefreshAPI
-
-authRefreshServer :: AuthResult AuthData -> ServerT RefreshAPI App
+authRefreshServer :: AuthResult AuthData -> ServerT Auth.RefreshAPI App
 authRefreshServer (AuthSuccess (AuthData uid _ _ _ Refresh)) = runAuthenticated uid Auth.refresh
+authRefreshServer BadToken                                   = throwAll err403TokenInvalid
 authRefreshServer _                                          = throwAll err401

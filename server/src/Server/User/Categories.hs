@@ -22,7 +22,6 @@ type API = "categories" :> (GetAPI :<|> CreateAPI)
 server :: ServerT API (AuthenticatedApp '[User])
 server = get :<|> create
 
-
 type GetAPI = QueryParam "recursive" Bool :> Capture "category_id" ID
                                           :> Get (SumType Payload PayloadRecursive)
 
@@ -33,7 +32,6 @@ get (Just True) =
 get _ =
   Categories.get
   >=> maybe (reject categoryNotFoundError) (return . SumA)
-
 
 type CreateAPI = ReqBody 'JSON CreateForm :> Post Payload
 

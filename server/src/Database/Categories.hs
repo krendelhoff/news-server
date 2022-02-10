@@ -1,8 +1,9 @@
-{-# LANGUAGE LambdaCase       #-}
-{-# LANGUAGE QuasiQuotes      #-}
-{-# LANGUAGE TupleSections    #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE ViewPatterns     #-}
+{-# LANGUAGE LambdaCase        #-}
+{-# LANGUAGE QuasiQuotes       #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TupleSections     #-}
+{-# LANGUAGE TypeApplications  #-}
+{-# LANGUAGE ViewPatterns      #-}
 module Database.Categories where
 
 import Universum hiding (get, toText)
@@ -13,14 +14,14 @@ import Types.Categories
 
 import qualified Data.Vector as V
 
-encodePayload :: (UUID, Text, Maybe UUID) -> Payload
-encodePayload ( fromUUID -> cid
+decodePayload :: (UUID, Text, Maybe UUID) -> Payload
+decodePayload ( fromUUID -> cid
               , fromText -> title
               , (fromUUID <$>) -> supercat
               ) = Payload cid title supercat
 
 get :: ID -> Transaction (Maybe Payload)
-get (toUUID -> cid) = (encodePayload <$>) <$>
+get (toUUID -> cid) = (decodePayload <$>) <$>
   statement cid [maybeStatement|
   SELECT id::uuid,title::text,supercategory::uuid?
   FROM categories
@@ -32,21 +33,21 @@ remove (toUUID -> cid) = NoContent <$ statement cid [resultlessStatement|
   DELETE FROM categories WHERE id=$1::uuid
                                                     |]
 
-isItUnique :: Text -> Maybe UUID -> Transaction Bool
-isItUnique title mSupercat = not <$> statement (title, mSupercat)
+isItUnique :: UUID -> Text -> Maybe UUID -> Transaction Bool
+isItUnique _ "/" _ = return False
+isItUnique root title mSuperCat =
+  not <$> statement (title, fromMaybe root mSuperCat)
   [singletonStatement|
     SELECT EXISTS( SELECT * FROM categories
-                   WHERE title=$1::text AND ((supercategory IS NULL
-                                          AND $2::uuid? IS NULL) OR
-                                              supercategory=$2::uuid?
-                                            )
+                   WHERE title=$1::text AND supercategory = $2::uuid
                   )::bool
   |]
 
 create :: Title -> Maybe ID -> Transaction (Maybe Payload)
 create (toText -> title) ((toUUID <$>) -> mSupercat) = do
-  isItUnique title mSupercat >>= \case
-    True -> createCat title mSupercat <&> Just . encodePayload
+  root <- toUUID <$> rootID
+  isItUnique root title mSupercat >>= \case
+    True -> createCat title mSupercat <&> Just . decodePayload
                                                . (,title,mSupercat)
     False -> return Nothing
   where
@@ -63,9 +64,10 @@ create (toText -> title) ((toUUID <$>) -> mSupercat) = do
 rename :: ID -> Title -> Transaction (Maybe Payload)
 rename cat@(toUUID -> cid) (toText -> title) = do
   Payload _ _ ((toUUID <$>) -> mSupercat) <- getUnsafe cat
-  isItUnique title mSupercat >>= \case
+  root <- toUUID <$> rootID
+  isItUnique root title mSupercat >>= \case
     False -> return Nothing
-    True  -> Just . encodePayload <$>
+    True  -> Just . decodePayload <$>
       statement (cid, title) [singletonStatement|
         UPDATE categories SET title=$2::text WHERE id=$1::uuid
         RETURNING id::uuid,title::text,supercategory::uuid?
@@ -91,7 +93,7 @@ getPathToRoot (toUUID -> cid) = coerce <$>
                 |]
 
 getUnsafe :: ID -> Transaction Payload
-getUnsafe (toUUID -> cid) = encodePayload <$>
+getUnsafe (toUUID -> cid) = decodePayload <$>
   statement cid [singletonStatement|
   SELECT id::uuid,title::text,supercategory::uuid?
   FROM categories
@@ -133,7 +135,7 @@ rebase whatC whereC = do
   childs <- getAllChilds whatC
   if whereC `V.elem` childs
   then return Nothing
-  else Just . encodePayload <$> updateSupercategory whatC whereC
+  else Just . decodePayload <$> updateSupercategory whatC whereC
   where
     updateSupercategory (toUUID -> cat) (toUUID -> supercat) =
       statement (cat, supercat) [singletonStatement|

@@ -7,11 +7,10 @@ module Effects.Authors where
 import Universum
 
 import Effects.CanReject (CanReject)
-import Infrastructure    (NoContent, run)
+import Infrastructure    (NoContent, run, Elem)
 import Types.Auth        (Rights(Admin))
 import Types.Authors     (Description, ID, Payload)
 import Types.Environment (AuthenticatedApp)
-import Utils             (Elem)
 
 import qualified Database.Authors as DB
 

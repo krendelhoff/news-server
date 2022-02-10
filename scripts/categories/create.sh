@@ -1,5 +1,5 @@
-curl -v "localhost:7980/categories" \
+curl "localhost:7980/categories" \
      -X POST \
      -H "Content-type: application/json" \
-     -H "Authorization: Bearer 771b86d977499e7186a515fc86544ed34d356e84523454bb560cf14cfaf080dc" \
-     --data '{"title": "Cartesian semi-bob-closed"}'
+     -H "Authorization: Bearer 09b6d7e70a54f9974e92a594666a7c2a9676a62f926a153e54eb3f91b49541ca" \
+     --data '{"title": "Cartesian closed"}'

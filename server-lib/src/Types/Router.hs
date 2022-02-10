@@ -36,34 +36,20 @@ newtype Handler a = Handler
 
 type Path = [Text]
 
-data Auth (a :: Type)
---data AuthAdmin (a :: Type)
 
-data RawRoute where
-  RawQueryP :: FromHttpApiData a => String  -> Proxy a       -> ByteString    -> RawRoute
-  RawCapt   :: FromHttpApiData a => String  -> Proxy a       -> Text          -> RawRoute
-  RawReqB   :: FromJSON a        =>            Proxy a       -> BL.ByteString -> RawRoute
+data Protection = Regular | Protected
+data Auth (protection :: Protection) (a :: Type)
 
-data Route where
-  QueryP :: FromHttpApiData a => String  -> a      -> Route
-  Capt   :: FromHttpApiData a => String  -> a      -> Route
-  ReqB   :: FromJSON a        =>            a      -> Route
---  Capt
+data RawRoutePiece where
+  RawQueryP :: FromHttpApiData a => String  -> Proxy a       -> ByteString    -> RawRoutePiece
+  RawCapt   :: FromHttpApiData a => String  -> Proxy a       -> Text          -> RawRoutePiece
+  RawReqB   :: FromJSON a        =>            Proxy a       -> BL.ByteString -> RawRoutePiece
 
--- instance Semigroup Auth where
---   NoAuth <> x  = x
---   x <> NoAuth  = x
---   Admin <> _   = Admin
---   _ <> Admin   = Admin
---   User <> User = User
---
--- instance Monoid Auth where
---   mempty = NoAuth
+data RoutePiece where
+  QueryP :: FromHttpApiData a => String  -> a      -> RoutePiece
+  Capt   :: FromHttpApiData a => String  -> a      -> RoutePiece
+  ReqB   :: FromJSON a        =>            a      -> RoutePiece
 
--- >>> l = [Auth, User, Admin]
--- >>> res = l >>= \x1 -> l >>= \x2 -> l >>= \x3 -> return (((x1 <> x2) <> x3) == (x1 <> (x2 <> x3)))
--- >>> all res
--- Data constructor not in scope: Auth :: Auth
 
 data RawAuthData = RawAuthData
   { _userId       :: !UUID
@@ -95,7 +81,7 @@ data RoutingEnv = RoutingEnv { _path     :: Path
                              , _headers  :: RequestHeaders
                              , _body     :: BL.ByteString
                              , _handle   :: ServingHandle
-                             , _racc     :: [Route]
+                             , _racc     :: [RoutePiece]
                              }
 makeLenses ''RoutingEnv
 

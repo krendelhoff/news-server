@@ -1,23 +1,23 @@
+{-# LANGUAGE DataKinds         #-}
+{-# LANGUAGE KindSignatures    #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE PolyKinds         #-}
 {-# LANGUAGE TypeApplications  #-}
+{-# LANGUAGE TypeFamilies      #-}
+{-# LANGUAGE TypeOperators     #-}
 {-# LANGUAGE ViewPatterns      #-}
-{-# LANGUAGE KindSignatures #-}
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE PolyKinds #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE TypeOperators #-}
 module Utils where
 
-import Control.Lens    (Iso', iso)
-import Crypto.Hash     (hashWith)
+import Control.Lens           (Iso', iso)
+import Crypto.Hash            (hashWith)
 import Crypto.Hash.Algorithms (Blake2b_256(Blake2b_256))
-import Data.Aeson      (encode)
-import Data.List       (lookup)
-import Data.Time       (addUTCTime)
-import Data.Time.Clock (UTCTime)
-import Data.Word8      (isSpace)
-import Network.Wai     (Response, responseLBS)
-import Universum       hiding (toText)
+import Data.Aeson             (encode)
+import Data.List              (lookup)
+import Data.Time              (addUTCTime)
+import Data.Time.Clock        (UTCTime)
+import Data.Word8             (isSpace)
+import Network.Wai            (Response, responseLBS)
+import Universum              hiding (toText)
 
 import qualified Crypto.Random   as Crypto
 import qualified Data.ByteString as B
@@ -28,11 +28,6 @@ import Infrastructure
 import Types.Auth     (AccessToken)
 import Types.Users    (Hash, Password)
 import Types.Utils    (CurrentTime)
-
-type family Elem (lst :: [a]) (el :: a) where
-  Elem '[] a       = 'False
-  Elem (a ': xs) a = 'True
-  Elem (x ': xs) a = Elem xs a
 
 infixl 1 =>>
 (=>>) :: Monad m => m a -> (a -> m b) -> m a

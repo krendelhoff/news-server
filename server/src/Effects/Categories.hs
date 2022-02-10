@@ -13,7 +13,6 @@ import Types.Environment
 
 import Effects.CanReject (CanReject)
 import Types.Auth
-import Utils             (Elem)
 
 import qualified Database.Categories as DB
 

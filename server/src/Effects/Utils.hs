@@ -21,7 +21,7 @@ class Monad m => UsesCurrentTime m where
   getCurrentTime :: m CurrentTime
 
 getExpirationDate :: UsesCurrentTime m => m ExpirationDate
-getExpirationDate = getCurrentTime <&> fromUTCTime . addUTCTime (5*60*60)
+getExpirationDate = getCurrentTime <&> fromUTCTime . addUTCTime (5*60*60*60)
                                      . toUTCTime
 
 class Monad m => GenRandom m where

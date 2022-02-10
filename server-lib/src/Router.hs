@@ -17,10 +17,11 @@
 {-# LANGUAGE TypeOperators         #-}
 {-# LANGUAGE UndecidableInstances  #-}
 {-# LANGUAGE ViewPatterns          #-}
-module Router {-( HasServer(..)
+module Router ( HasServer(..)
               , serve
               , FromAuth(fromRawAuth)
-              )-} where
+              , Elem
+              ) where
 
 import Control.Applicative  (Alternative((<|>)))
 import Control.Monad.Except (MonadError, throwError)
@@ -43,12 +44,13 @@ import qualified Data.ByteString      as B
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.Text            as T
 
---class (MonadIO m, MonadError ServerError m, FromAuth a) => RoutingConstraint m a a
---instance (MonadIO m, MonadError ServerError m, FromAuth a) => RoutingConstraint m a a
---type RoutingConstraint m a = (MonadIO m, MonadError ServerError m, FromAuth a)
-
 type family Server (layout :: Type) where
   Server layout = ServerT layout Handler
+
+type family Elem (lst :: [a]) (el :: a) where
+  Elem '[] a       = 'False
+  Elem (a ': xs) a = 'True
+  Elem (x ': xs) a = Elem xs a
 
 type family Or (a :: Constraint) (b :: Constraint) :: Constraint where
   Or () b = ()
@@ -61,39 +63,20 @@ type family IsThere (endpoint :: Type) (api :: Type) :: Constraint where
   IsThere e (QueryParam f a :> r) = IsThere e r
   IsThere (Capture d a :> e) (Capture f a :> r) = IsThere e r
   IsThere e e = ()
-  -- don't know how to use it without constructing singleton paths
-
---fac :: (Eq p, Num p) => p -> p
---fac n = fac' n id
---  where
---    fac' 0 c = c 1
---    fac' n c = fac' (n - 1) \x -> c (n * x)
 
 class FromAuth a where
   fromRawAuth :: RawAuthData -> a
 
 -- TODO
--- routing
 -- integration tests
 -- more beautiful unit tests
--- readme (test data + request examples (only examples) and codes)
 -- one more endpoint delete user
--- TODO beautiful CODE MAN
--- TODO fix routing - recursive query param incorrect leads to not found
--- 
---[ERROR] QueryError "INSERT INTO categories (title, supercategory) VALUES ($1 :: text, $2 :: 
---uuid) RETURNING id :: uuid" ["\"Cartesian closed\"","27f372dc-91aa-4f24-8ec5-51c2b24ad6a5"] 
---(ResultError (ServerError "23505" "duplicate key value violates unique constraint \"categori
---es_title_supercategory_key\"" (Just "Key (title, supercategory)=(Cartesian closed, 27f372dc-
---91aa-4f24-8ec5-51c2b24ad6a5) already exists.") Nothing))
--- if categories same name on root
 
--- type instance Server (QueryParams s a :> r) = Vector a -> Server r
 class HasServer layout where
   type ServerT (layout :: Type) (m :: Type -> Type) :: Type
   route  :: Server layout -> RoutingEnv -> Maybe (Handler Response)
   unlift :: (forall x. m x -> n x) -> ServerT layout m -> ServerT layout n
-  walk   :: RoutingEnv -> Maybe [RawRoute]
+  walk   :: RoutingEnv -> Maybe ([RawRoutePiece], Protection)
 
 createStatus :: forall code. KnownNat code => Status
 createStatus = case natVal (Proxy @code) of
@@ -114,9 +97,9 @@ instance (KnownMethod t, KnownNat code, ToJSON a
   route _ _ = Nothing
   unlift :: (forall x. m x -> n x) -> m a -> n a
   unlift f = f
-  walk :: RoutingEnv -> Maybe [RawRoute]
+  walk :: RoutingEnv -> Maybe ([RawRoutePiece], Protection)
   walk (view path -> p)       | not . null $ p    = Nothing
-  walk req@(view method -> m) | m == methodVal @t = Just []
+  walk req@(view method -> m) | m == methodVal @t = Just ([], Regular)
   walk _ = Nothing
 
 instance (KnownMethod t, KnownNat code
@@ -129,8 +112,8 @@ instance (KnownMethod t, KnownNat code
   unlift :: (forall x. m x -> n x) -> m BL.ByteString
          -> n BL.ByteString
   unlift f = f
-  walk :: RoutingEnv -> Maybe [RawRoute]
-  walk (view method -> m) | m == methodVal @t = Just []
+  walk :: RoutingEnv -> Maybe ([RawRoutePiece], Protection)
+  walk (view method -> m) | m == methodVal @t = Just ([], Regular)
   walk _ = Nothing
 
 parseReqB :: forall a. FromJSON a => BL.ByteString -> Either [ErrorMessage] a
@@ -145,8 +128,8 @@ instance (HasServer r, FromJSON a) => HasServer (ReqBody 'JSON a :> r) where
   unlift :: (forall x. m x -> n x) -> (a -> ServerT r m)
          -> (a -> ServerT r n)
   unlift f g = unlift @r f . g
-  walk :: RoutingEnv -> Maybe [RawRoute]
-  walk req@(view body -> bodyStr) = walk @r req <&> (RawReqB (Proxy @a) bodyStr :)
+  walk :: RoutingEnv -> Maybe ([RawRoutePiece], Protection)
+  walk req@(view body -> bodyStr) = walk @r req <&> first (RawReqB (Proxy @a) bodyStr :)
 
 instance HasServer r => HasServer (ReqBody 'Raw BL.ByteString :> r) where
   type ServerT (ReqBody 'Raw BL.ByteString :> r) m = BL.ByteString -> ServerT r m
@@ -155,7 +138,7 @@ instance HasServer r => HasServer (ReqBody 'Raw BL.ByteString :> r) where
   unlift :: (forall x. m x -> n x) -> (BL.ByteString -> ServerT r m)
          -> (BL.ByteString -> ServerT r n)
   unlift f g = unlift @r f . g
-  walk :: RoutingEnv -> Maybe [RawRoute]
+  walk :: RoutingEnv -> Maybe ([RawRoutePiece], Protection)
   walk = walk @r
 
 parseQueryParam :: forall a. FromHttpApiData a => String -> ByteString
@@ -178,11 +161,11 @@ instance (KnownSymbol s, FromHttpApiData a, HasServer r
   unlift :: (forall x. m x -> n x) -> (Maybe a -> ServerT r m)
          -> (Maybe a -> ServerT r n)
   unlift f g = unlift @r f . g
-  walk :: RoutingEnv -> Maybe [RawRoute]
+  walk :: RoutingEnv -> Maybe ([RawRoutePiece], Protection)
   walk req@(view queryStr -> params) =
     case lookup (encodeUtf8 (symbolVal (Proxy @s))) params of
       Just (Just x) ->
-        walk @r req <&> (RawQueryP (symbolVal (Proxy @s)) (Proxy @a) x :)
+        walk @r req <&> first (RawQueryP (symbolVal (Proxy @s)) (Proxy @a) x :)
       _ -> walk @r req
 
 instance (HasServer a, HasServer b) => HasServer (a :<|> b) where
@@ -193,7 +176,7 @@ instance (HasServer a, HasServer b) => HasServer (a :<|> b) where
   unlift :: (forall x. m x -> n x) -> (ServerT a m :<|> ServerT b m)
          -> (ServerT a n :<|> ServerT b n)
   unlift f (g1 :<|> g2) = unlift @a f g1 :<|> unlift @b f g2
-  walk :: RoutingEnv -> Maybe [RawRoute]
+  walk :: RoutingEnv -> Maybe ([RawRoutePiece], Protection)
   walk p = walk @a p <|> walk @b p
 
 instance (KnownSymbol s, HasServer r) => HasServer ((s :: Symbol) :> r) where
@@ -204,7 +187,7 @@ instance (KnownSymbol s, HasServer r) => HasServer ((s :: Symbol) :> r) where
   route _ _ = Nothing
   unlift :: (forall x. m x -> n x) -> ServerT r m -> ServerT r n
   unlift f = unlift @r f
-  walk :: RoutingEnv -> Maybe [RawRoute]
+  walk :: RoutingEnv -> Maybe ([RawRoutePiece], Protection)
   walk req@(view path -> (x:xs))
     | T.unpack x == symbolVal (Proxy @s) = walk @r (req & path .~ xs)
   walk _ = Nothing
@@ -227,13 +210,13 @@ instance (FromHttpApiData a, HasServer r, KnownSymbol id
   unlift :: (forall x. m x -> n x) -> (a -> ServerT r m)
          -> (a -> ServerT r n)
   unlift f g = unlift @r f . g
-  walk :: RoutingEnv -> Maybe [RawRoute]
+  walk :: RoutingEnv -> Maybe ([RawRoutePiece], Protection)
   walk req@(view path -> (x:xs)) =
-    walk @r (req & path .~ xs) <&> (RawCapt (symbolVal (Proxy @id)) (Proxy @a) x :)
+    walk @r (req & path .~ xs) <&> first (RawCapt (symbolVal (Proxy @id)) (Proxy @a) x :)
   walk _ = Nothing
 
-instance (FromAuth a, HasServer r) => HasServer (Auth a :> r) where
-  type ServerT (Auth a :> r) m = AuthResult a -> ServerT r m
+instance (FromAuth a, HasServer r) => HasServer (Auth Protected a :> r) where
+  type ServerT (Auth Protected a :> r) m = AuthResult a -> ServerT r m
   route :: (AuthResult a -> Server r) -> RoutingEnv -> Maybe (Handler Response)
   route handlerF req@(lookup "Authorization" . view headers -> Just rawToken) =
     case _extractToken (req^.handle) rawToken of
@@ -245,39 +228,53 @@ instance (FromAuth a, HasServer r) => HasServer (Auth a :> r) where
   unlift :: (forall x. m x -> n x) -> (AuthResult a -> ServerT r m)
                                    -> (AuthResult a -> ServerT r n)
   unlift f g = unlift @r f . g
-  walk :: RoutingEnv -> Maybe [RawRoute]
+  walk :: RoutingEnv -> Maybe ([RawRoutePiece], Protection)
+  walk = (second (const Protected) <$>) . walk @r
+
+instance (FromAuth a, HasServer r) => HasServer (Auth Regular a :> r) where
+  type ServerT (Auth Regular a :> r) m = AuthResult a -> ServerT r m
+  route :: (AuthResult a -> Server r) -> RoutingEnv -> Maybe (Handler Response)
+  route handlerF req@(lookup "Authorization" . view headers -> Just rawToken) =
+    case _extractToken (req^.handle) rawToken of
+      Nothing    -> route @r (handlerF $ fromRawAuth <$> BadToken) req
+      Just token -> do
+        authResult <- Just $ unsafePerformIO $ _authenticate (req^.handle) token
+        route @r (handlerF $ fromRawAuth <$> authResult) req
+  route handlerF req = route @r (handlerF $ fromRawAuth <$> NoToken) req
+  unlift :: (forall x. m x -> n x) -> (AuthResult a -> ServerT r m)
+                                   -> (AuthResult a -> ServerT r n)
+  unlift f g = unlift @r f . g
+  walk :: RoutingEnv -> Maybe ([RawRoutePiece], Protection)
   walk = walk @r
 
-check :: Validation [ErrorMessage] [Route] -> Bool
-check x = case x of
-  Failure _ -> False
-  Success _ -> True
-
-parseRoute :: [RawRoute] -> Validation [ErrorMessage] [Route]
-parseRoute = foldr (\x acc ->
-                       case x of
-                         RawQueryP s p b -> liftA2 (:) (fromEither (parseQueryParamRoute s p b)) acc
-                         RawCapt   s p t -> liftA2 (:) (fromEither (parseCaptureRoute s p t)) acc
-                         RawReqB   p b   -> liftA2 (:) (fromEither (parseReqBRoute p b)) acc
-                    ) (pure [])
+parseRoute :: [RawRoutePiece] -> Validation [ErrorMessage] [RoutePiece]
+parseRoute =
+  foldr (\x acc -> case x of
+            RawQueryP s p b -> liftA2 (:) (fromEither (parseQueryParamRoutePiece s p b)) acc
+            RawCapt   s p t -> liftA2 (:) (fromEither (parseCaptureRoutePiece s p t)) acc
+            RawReqB   p b   -> liftA2 (:) (fromEither (parseReqBRoutePiece p b)) acc
+          ) (pure [])
   where
-    parseReqBRoute :: forall a. FromJSON a => Proxy a -> BL.ByteString -> Either [ErrorMessage] Route
-    parseReqBRoute _ = (ReqB @a <$>) . parseReqB @a
-
-    parseQueryParamRoute :: forall a. FromHttpApiData a => String -> Proxy a
-                                                        -> ByteString -> Either [ErrorMessage] Route
-    parseQueryParamRoute s _ = (QueryP @a s <$>) . parseQueryParam @a s
-    parseCaptureRoute :: forall a. FromHttpApiData a => String -> Proxy a
-                                                    -> Text   -> Either [ErrorMessage] Route
-    parseCaptureRoute s _ = (Capt @a s <$>) . parseCapture @a s
+    parseReqBRoutePiece :: forall a. FromJSON a => Proxy a -> BL.ByteString -> Either [ErrorMessage] RoutePiece
+    parseReqBRoutePiece _ = (ReqB @a <$>) . parseReqB @a
+    parseQueryParamRoutePiece :: forall a. FromHttpApiData a => String -> Proxy a
+                                                             -> ByteString -> Either [ErrorMessage] RoutePiece
+    parseQueryParamRoutePiece s _ = (QueryP @a s <$>) . parseQueryParam @a s
+    parseCaptureRoutePiece :: forall a. FromHttpApiData a => String -> Proxy a
+                                                          -> Text   -> Either [ErrorMessage] RoutePiece
+    parseCaptureRoutePiece s _ = (Capt @a s <$>) . parseCapture @a s
 
 
 serve :: forall layout. HasServer layout =>
   ServingHandle -> Server layout -> Application
-serve h s req@(requestMethod -> rawMethod) respond =
-  case parseMethod rawMethod of
-    Left err -> respond $ toResponse err400BadMethod
-    Right m  -> do
+serve h s req@(parseMethod . requestMethod -> Left err) respond =
+  respond $ toResponse err400BadMethod
+serve h s req@(parseMethod . requestMethod -> Right m) respond =
+  serveWithMethod @layout h s m req respond
+  where
+    serveWithMethod :: forall layout. HasServer layout =>
+      ServingHandle -> Server layout -> StdMethod -> Application
+    serveWithMethod h s m req respond = do
       bodyStr <- strictRequestBody req
       let reqInfo = RoutingEnv { _path     = pathInfo req
                                , _method   = m
@@ -288,15 +285,24 @@ serve h s req@(requestMethod -> rawMethod) respond =
                                , _racc     = []
                                }
       case walk @layout reqInfo of
-        Nothing       -> respond (toResponse err404)
-        Just rawRacc  -> case parseRoute rawRacc of
-          Failure errs -> respond $ toResponse (mkError status400 errs)
-          Success r    -> do
-            case route @layout s (reqInfo & racc .~ r) of
-              Nothing -> respond (toResponse err404)
-              Just handler -> do
-                let safeHandler = handler `catch` \(e :: SomeException) -> do
-                      liftIO $ _log h $ fromString $ displayException e
-                      return $ toResponse err500
-                runExceptT (runHandler safeHandler)
-                  >>= either (respond . toResponse) respond
+        Nothing       -> respond $ toResponse err404
+        Just rawRacc  -> serveAfterWalk @layout s reqInfo rawRacc req respond
+    serveAfterWalk :: forall layout. HasServer layout =>
+      Server layout -> RoutingEnv -> ([RawRoutePiece], Protection) -> Application
+    serveAfterWalk s env (rawRoutePieceList, protection) req respond =
+      case (parseRoute rawRoutePieceList, protection) of
+        (Failure errs, Regular  ) -> respond $ toResponse (mkError status400 errs)
+        (Failure errs, Protected) -> respond $ toResponse err404
+        (Success _, _           ) -> serveWithRoute @layout s env req respond
+    serveWithRoute :: forall layout. HasServer layout =>
+      Server layout -> RoutingEnv -> Application
+    serveWithRoute s env req respond =
+      case route @layout s env of
+        Nothing -> respond $ toResponse err404
+        Just handler -> do
+          let safeHandler = handler `catch` \(e :: SomeException) -> do
+                liftIO $ _log h $ fromString $ displayException e
+                return $ toResponse err500
+          runExceptT (runHandler safeHandler)
+            >>= either (respond . toResponse) respond
+serve _ _ _ respond = respond $ toResponse err404
