@@ -54,3 +54,4 @@ delete (toUUID -> uid) = do
   statement uid [resultlessStatement|
   DELETE FROM users WHERE id = $1::uuid
                 |]
+

@@ -103,3 +103,10 @@ issueToken (toUTCTime -> expires) (toBool -> privileged)
     DO UPDATE SET token=$3::text,refresh_token=$4::text,expires=$5::timestamptz
     RETURNING token::text,expires::timestamptz,refresh_token::text
  |]
+
+pictureCorrect :: Maybe Pictures.ID -> Transaction Bool
+pictureCorrect Nothing = return True
+pictureCorrect (Just (toUUID -> pid)) = do
+  statement pid [singletonStatement|
+    SELECT EXISTS (SELECT * FROM pictures where id = $1::uuid)::bool
+                |]

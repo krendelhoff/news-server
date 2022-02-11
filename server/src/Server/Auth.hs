@@ -43,8 +43,12 @@ register (CreateForm name surname login mAvatar password) =
     Nothing -> do
       tokens         <- Utils.generateTokens
       expirationDate <- Utils.getExpirationDate
-      run (DB.create name surname login mAvatar password)
-        >>= run . DB.issueToken expirationDate (fromBool False) tokens
+      correct        <- run (DB.pictureCorrect mAvatar)
+      if correct
+      then do
+        run (DB.create name surname login mAvatar password)
+          >>= run . DB.issueToken expirationDate (fromBool False) tokens
+      else reject pictureNotExistsError
     _       -> reject userAlreadyExistsError
 
 type LoginAPI = "login" :> ReqBody 'JSON LoginForm :> Post AuthPayload

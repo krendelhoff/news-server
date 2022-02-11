@@ -33,3 +33,6 @@ cantRemoveAdminError = mkError status403 ["Not enough rights to delete admin"]
 
 cantRemoveRootError :: ServerError
 cantRemoveRootError = mkError status403 ["Can't remove root category"]
+
+pictureNotExistsError :: ServerError
+pictureNotExistsError = mkError status404 ["Picture with given ID does not exist"]

@@ -121,7 +121,7 @@ For `User` protected endpoints:
 | Code | Description |
 | --- | --- |
 | `400` | **Bad request: can't parse request body, present query parameter or capture id** |
-| `401` | **No authorization header, no such token present or token violates format* |
+| `401` | **No authorization header, no such token present or token violates format** |
 | `403` | **Token expired or not enough rights** |
 | `404` | **Not found** |
 
@@ -144,7 +144,7 @@ Endpoint for user creation.
 Request body implements an interface:
 ```
 interface ICreateUserRequest {
-{ name: string;
+  name: string;
   surname: string;
   login: string;
   avatar: string?;      // ID of the picture in database
@@ -164,6 +164,7 @@ interface ICreateUserResponse {
 | Code | Description |
 | --- | --- |
 | `200` | **Created successfully** |
+| `404` | **Picture does not exist** |
 
 [Example](./scripts/auth/register.sh)
 
@@ -300,6 +301,16 @@ interface IGetCategoryResponse {
 }
 ```
 
+With recursive=true, response body implements an interface:
+Response body implements an interface:
+```
+interface IGetCategoryResponse {
+  categoryId: string;
+  title: string;
+  parent?: IGetCategoryResponse;
+}
+```
+
 | Code | Description |
 | --- | --- |
 | `200` | **Returns category payload successfully** |
@@ -312,6 +323,7 @@ interface IGetCategoryResponse {
 **Permission** `User`
 
 Endpoint for category creation.
+Omitted parent field means root category becomes parent.
 
 Request body implements an interface:
 ```
@@ -415,8 +427,8 @@ interface IPromoteUserRequest {
 
 Response body implements an interface:
 ```
-interface IUpdateAuthorResponse {
-  userId: String
+interface IPromoteUserResponse {
+  userId: string;
   description: string;
 }
 ```
@@ -444,7 +456,7 @@ interface IUpdateAuthorRequest {
 Response body implements an interface:
 ```
 interface IUpdateAuthorResponse {
-  userId: String
+  userId: string;
   description: string;
 }
 ```
