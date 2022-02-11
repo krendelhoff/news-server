@@ -17,10 +17,10 @@ import Types.Environment (AuthenticatedApp)
 
 import qualified Effects.Categories as Categories
 
-type API = "categories" :> (GetAPI :<|> CreateAPI)
+type API = "categories" :> GetAPI
 
 server :: ServerT API (AuthenticatedApp '[User])
-server = get :<|> create
+server = get
 
 type GetAPI = QueryParam "recursive" Bool :> Capture "category_id" ID
                                           :> Get (SumType Payload PayloadRecursive)
@@ -32,11 +32,3 @@ get (Just True) =
 get _ =
   Categories.get
   >=> maybe (reject categoryNotFoundError) (return . SumA)
-
-type CreateAPI = ReqBody 'JSON CreateForm :> Post Payload
-
-create :: PersistCategory m => CreateForm -> m Payload
-create (CreateForm title mParent) =
-  Categories.create title mParent >>= \case
-    Nothing  -> reject titleIsNotUnique
-    Just cat -> return cat

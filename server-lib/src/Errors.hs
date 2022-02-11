@@ -70,10 +70,10 @@ err400BadQueryParam :: String -> ServerError
 err400BadQueryParam s = mkError status400 ["Bad " <> fromString s]
 
 err403TokenExpired :: ServerError
-err403TokenExpired = mkError status403 ["Token expired"]
+err403TokenExpired = mkError status401 ["Token expired"]
 
-err403TokenInvalid :: ServerError
-err403TokenInvalid = mkError status403 ["Token invalid"]
+err401TokenInvalid :: ServerError
+err401TokenInvalid = mkError status403 ["Token invalid"]
 
 failGracefully :: SomeException -> IO a
 failGracefully e = do

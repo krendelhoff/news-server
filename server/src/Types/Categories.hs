@@ -4,9 +4,13 @@
 {-# LANGUAGE StandaloneDeriving         #-}
 {-# LANGUAGE StrictData                 #-}
 {-# LANGUAGE TemplateHaskell            #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE FlexibleInstances #-}
 module Types.Categories where
 
 import Universum
+import Control.Lens.TH
 
 import Types.Infrastructure
 
@@ -18,6 +22,7 @@ data Payload = Payload { payloadCategoryId :: ID
                        , payloadParent     :: Maybe ID
                        }
 deriveWeb "payload" ''Payload
+makeFields ''Payload
 
 data PayloadRecursive = PayloadRecursive
   { payloadRecursiveCategoryId :: ID

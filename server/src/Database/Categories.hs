@@ -28,10 +28,10 @@ get (toUUID -> cid) = (decodePayload <$>) <$>
   WHERE id = $1::uuid
                                     |]
 
-remove :: ID -> Transaction NoContent
-remove (toUUID -> cid) = NoContent <$ statement cid [resultlessStatement|
+remove :: ID -> Transaction ()
+remove (toUUID -> cid) = statement cid [resultlessStatement|
   DELETE FROM categories WHERE id=$1::uuid
-                                                    |]
+                                       |]
 
 isItUnique :: UUID -> Text -> Maybe UUID -> Transaction Bool
 isItUnique _ "/" _ = return False

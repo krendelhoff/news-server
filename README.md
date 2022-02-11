@@ -111,24 +111,27 @@ Request examples may be found at folder `scripts/`.
 
 ### Route agnostic responses
 
-For every endpoint:
+For auth endpoints:
 | Code | Description |
 | --- | --- |
-| `400` | **Bad request: can't parse request body, capture id or present query parameter** |
+| `400` | **Bad request: can't parse request body, present query parameter or capture id** |
+| `404` | **Not found** |
 
 For `User` protected endpoints:
 | Code | Description |
 | --- | --- |
-| `401` | **No authorization header or no such token present** |
-| `403` | **Token violates format or token expired** |
+| `400` | **Bad request: can't parse request body, present query parameter or capture id** |
+| `401` | **No authorization header, no such token present or token violates format* |
+| `403` | **Token expired or not enough rights** |
+| `404` | **Not found** |
 
 For `Admin` protected endpoints:
 | Code | Description |
 | --- | --- |
-| `404` | **In case of any authorization problems** |
+| `404` | **In case of any authorization errors** |
+| `400` | **Bad request: can't parse request body, capture id or present query parameter (if authorized)** |
 
 Every response with error code is accompanied by explanatory messages.
-
 
 ### `/auth`
 
@@ -183,7 +186,7 @@ Response body implements an interface:
 interface ILoginResponse {
   token: string;
   refreshToken: string;
-  token: string;
+  expires: timestamptz;
 }
 ```
 
@@ -343,6 +346,7 @@ Endpoint for deleting categories. Returns empty response body with the following
 | Code | Description |
 | --- | --- |
 | `200` | **Removed successfully** |
+| `403` | **Attempt to remove root category** |
 | `404` | **Category not found** |
 
 [Example](./scripts/categories/delete.sh)
@@ -397,18 +401,53 @@ interface IGetAuthorResponse {
 
 [Example](./scripts/authors/get.sh)
 
+#### `POST /authors` 
+
+**Permission** `Admin`
+
+Request body implements an interface:
+```
+interface IPromoteUserRequest {
+  userId: string;
+  description: string;
+}
+```
+
+Response body implements an interface:
+```
+interface IUpdateAuthorResponse {
+  userId: String
+  description: string;
+}
+```
+
+| Code | Description |
+| --- | --- |
+| `200` | **Returns author payload** |
+| `404` | **User not found** |
+| `406` | **Current user is already an author** |
+
+[Example](./scripts/authors/promote.sh)
+
+
 #### `PUT /authors/<author_id>` 
 
 **Permission** `Admin`
 
 Request body implements an interface:
 ```
-interface IUpdateCategoryRequest {
+interface IUpdateAuthorRequest {
   description: string;
 }
 ```
 
-Returns empty response body.
+Response body implements an interface:
+```
+interface IUpdateAuthorResponse {
+  userId: String
+  description: string;
+}
+```
 
 | Code | Description |
 | --- | --- |
@@ -421,7 +460,7 @@ Returns empty response body.
 
 **Permission** `Admin`
 
-Endpoint for downgrading authors to regular user.
+Endpoint for downgrading author to regular user.
 
 | Code | Description |
 | --- | --- |

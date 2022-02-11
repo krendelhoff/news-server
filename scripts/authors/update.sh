@@ -1,4 +1,4 @@
-curl "localhost:3000/authors/update/576760b0-ee2b-4064-b3af-19cabd62f0fc" \
-     -X POST \
-     --data '{"description": "The king of Development"}' \
-     -H "Authorization: Bearer d805b99c4b16693076ebcb5e9b5a988a1b093712e0d54d6c5f3fdd1f913168cb"
+curl "localhost:7980/authors/b6fee889-1b35-4ff7-a70a-947c8e796d6b" \
+     -X PUT \
+     --data '{"description": "Troubadour"}' \
+     -H "Authorization: Bearer 517ad09dfdceba158d7d0a0580fcbb355b6e44cb608e255e31b4fd4489164842"

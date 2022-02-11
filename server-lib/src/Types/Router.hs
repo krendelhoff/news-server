@@ -37,7 +37,9 @@ newtype Handler a = Handler
 type Path = [Text]
 
 
-data Protection = Regular | Protected
+data Protection = Regular | Protected deriving (Eq, Ord, Show)
+makeKnown ''Protection
+
 data Auth (protection :: Protection) (a :: Type)
 
 data RawRoutePiece where
@@ -81,7 +83,7 @@ data RoutingEnv = RoutingEnv { _path     :: Path
                              , _headers  :: RequestHeaders
                              , _body     :: BL.ByteString
                              , _handle   :: ServingHandle
-                             , _racc     :: [RoutePiece]
+                             , _auth     :: AuthResult RawAuthData
                              }
 makeLenses ''RoutingEnv
 
@@ -92,7 +94,6 @@ data SMethod (m :: StdMethod) where
   SDelete :: SMethod 'DELETE
 
 makeKnown' (stripModifier "Std") ''StdMethod
-
 
 data Verb (m :: StdMethod) (code :: Nat) (f :: Format) (a :: Type)
 

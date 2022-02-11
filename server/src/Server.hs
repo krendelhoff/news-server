@@ -23,18 +23,31 @@ import qualified Server.Auth  as Auth
 import qualified Server.User  as User
 import qualified Server.Admin as Admin
 
-type AuthenticatedAPI = Auth.RefreshAPI
-                   :<|> User.API
-
-type API = Auth.API :<|> Auth 'Regular   AuthData :> AuthenticatedAPI
+type API = Auth.API :<|> Auth 'Regular   AuthData :> Auth.RefreshAPI
+                    :<|> Auth 'Regular   AuthData :> User.API
                     :<|> Auth 'Protected AuthData :> Admin.API
 
 server :: ServerT API App
-server = Auth.server :<|> authenticatedServer :<|> authAdminServer
+server = Auth.server :<|> authRefreshServer
+                     :<|> authUserServer
+                     :<|> authAdminServer
 
-authenticatedServer :: AuthResult AuthData -> ServerT AuthenticatedAPI App
-authenticatedServer auth = authRefreshServer auth
-                      :<|> authUserServer    auth
+
+authUserServer :: AuthResult AuthData -> ServerT User.API App
+authUserServer NotFound                                  = throwAll err401
+authUserServer NoToken                                   = throwAll err401
+authUserServer BadToken                                  = throwAll err401TokenInvalid
+authUserServer TokenExpired                              = throwAll err403TokenExpired
+authUserServer (AuthSuccess (AuthData uid _ _ _ Access)) = runAuthenticated uid User.server
+authUserServer _ = throwAll err403
+
+authAdminServer :: AuthResult AuthData -> ServerT Admin.API App
+authAdminServer (AuthSuccess (AuthData uid _ _ _ Access)) = runAuthenticated uid Admin.server
+authAdminServer _ = throwAll err404
+
+authRefreshServer :: AuthResult AuthData -> ServerT Auth.RefreshAPI App
+authRefreshServer (AuthSuccess (AuthData uid _ _ _ Refresh)) = runAuthenticated uid Auth.refresh
+authRefreshServer _                                          = throwAll err401
 
 class ThrowAll a where
   throwAll :: ServerError -> a
@@ -64,20 +77,3 @@ instance Unlift (AuthenticatedApp rights a) (App a) where
 instance FromAuth AuthData where
   fromRawAuth (RawAuthData uid token rToken iA authT) =
     AuthData (fromUUID uid) (fromText token) (fromText rToken) (fromBool iA) authT
-
-authUserServer :: AuthResult AuthData -> ServerT User.API App
-authUserServer NotFound                                  = throwAll err401
-authUserServer NoToken                                   = throwAll err401
-authUserServer BadToken                                  = throwAll err403TokenInvalid
-authUserServer TokenExpired                              = throwAll err403TokenExpired
-authUserServer (AuthSuccess (AuthData uid _ _ _ Access)) = runAuthenticated uid User.server
-authUserServer _ = throwAll err403
-
-authAdminServer :: AuthResult AuthData -> ServerT Admin.API App
-authAdminServer (AuthSuccess (AuthData uid _ _ (toBool -> True) Access)) = runAuthenticated uid Admin.server
-authAdminServer _                                                        = throwAll err404
-
-authRefreshServer :: AuthResult AuthData -> ServerT Auth.RefreshAPI App
-authRefreshServer (AuthSuccess (AuthData uid _ _ _ Refresh)) = runAuthenticated uid Auth.refresh
-authRefreshServer BadToken                                   = throwAll err403TokenInvalid
-authRefreshServer _                                          = throwAll err401

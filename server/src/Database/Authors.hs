@@ -9,11 +9,12 @@ import Types.Authors
 
 import qualified Types.Users as Users
 
-encodePayload = uncurry Payload . bimap fromUUID fromText
+decodePayload :: (UUID, Text) -> Payload
+decodePayload = uncurry Payload . bimap fromUUID fromText
 
-update :: ID -> Description -> Transaction Payload
-update (toUUID -> uid) (toText -> desc) =
-  encodePayload <$> statement (uid, desc)
+updateUnsafe :: ID -> Description -> Transaction Payload
+updateUnsafe (toUUID -> uid) (toText -> desc) =
+  decodePayload <$> statement (uid, desc)
   [singletonStatement|
      UPDATE authors SET description=$2::text
      WHERE user_id = $1::uuid
@@ -22,12 +23,21 @@ update (toUUID -> uid) (toText -> desc) =
 
 get :: ID -> Transaction (Maybe Payload)
 get (toUUID -> aid) =
-  (encodePayload <$>) <$> statement aid [maybeStatement|
+  (decodePayload <$>) <$> statement aid [maybeStatement|
     SELECT user_id::uuid,description::text FROM authors
     WHERE user_id=$1::uuid
                                         |]
 
-downgrade :: ID -> Transaction NoContent
+downgrade :: ID -> Transaction ()
 downgrade (toUUID -> aid) =
-  NoContent <$ statement aid
+  statement aid
   [resultlessStatement| DELETE FROM authors WHERE user_id=$1::uuid |]
+
+promoteUnsafe :: Users.ID -> Description -> Transaction Payload
+promoteUnsafe (toUUID -> uid) (toText -> desc) =
+  decodePayload <$> statement (uid, desc)
+  [singletonStatement|
+     INSERT INTO authors (user_id, description)
+     VALUES ($1::uuid, $2::text)
+     RETURNING user_id::uuid,description::text
+  |]

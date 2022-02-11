@@ -3,6 +3,7 @@
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeOperators       #-}
+{-# LANGUAGE ViewPatterns #-}
 module Server.Admin.Categories where
 
 import Universum hiding (get, toText)
@@ -17,15 +18,30 @@ import Types.Environment (AuthenticatedApp)
 import qualified Effects.Categories     as Categories
 import qualified Server.User.Categories as UserServer
 
-type API = "categories" :> (RemoveAPI :<|> UpdateAPI)
+type API = "categories" :> (RemoveAPI :<|> UpdateAPI
+                                      :<|> CreateAPI)
 
 server :: ServerT API (AuthenticatedApp '[Admin, User])
-server = remove :<|> update
+server = remove :<|> update :<|> create
+
+type CreateAPI = ReqBody 'JSON CreateForm :> Post Payload
+
+create :: PersistCategory m => CreateForm -> m Payload
+create (CreateForm title mParent) =
+  Categories.create title mParent >>= \case
+    Nothing  -> reject titleIsNotUnique
+    Just cat -> return cat
 
 type RemoveAPI = Capture "category_id" ID :> Delete NoContent
 
 remove :: PersistCategory m => ID -> m NoContent
-remove = Categories.remove
+remove mUid = do
+  root <- Categories.rootID
+  if mUid == root
+  then reject cantRemoveRootError
+  else Categories.get mUid >>= \case
+    Nothing                       -> reject categoryNotFoundError
+    Just (view categoryId -> cid) -> NoContent <$ Categories.remove cid
 
 type UpdateAPI = Capture "category_id" ID :> QueryParam "title" Title
                                           :> QueryParam "parent" ID

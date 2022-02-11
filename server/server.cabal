@@ -42,6 +42,7 @@ library
       Server.Admin
       Server.Admin.Authors
       Server.Admin.Categories
+      Server.Admin.Users
       Server.Auth
       Server.Errors
       Server.User

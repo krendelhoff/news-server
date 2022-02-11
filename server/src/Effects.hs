@@ -1,4 +1,5 @@
 module Effects ( AcquireUser
+               , ManageUser
                , PersistPicture
                , Logging(..)
                , UsesCurrentTime

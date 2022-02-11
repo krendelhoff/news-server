@@ -25,20 +25,20 @@ import qualified Utils         as RawUtils
 
 import qualified Database.Auth as DB
 
-type API = HelloAPI :<|> "auth" :> (CreateAPI :<|> LoginAPI)
+type API = HelloAPI :<|> "auth" :> (RegisterAPI :<|> LoginAPI)
 
 server :: ServerT API App
-server = hello :<|> create :<|> login
+server = hello :<|> register :<|> login
 
 type HelloAPI = Get Messages
 
 hello :: App Messages
 hello = return $ coerce @[Text] @Messages ["Hello, World!"]
 
-type CreateAPI = "create" :> ReqBody 'JSON CreateForm :> Post AuthPayload
+type RegisterAPI = "register" :> ReqBody 'JSON CreateForm :> Post AuthPayload
 
-create :: CreateForm -> App AuthPayload
-create (CreateForm name surname login mAvatar password) =
+register :: CreateForm -> App AuthPayload
+register (CreateForm name surname login mAvatar password) =
   run (DB.login login password) >>= \case
     Nothing -> do
       tokens         <- Utils.generateTokens
@@ -57,7 +57,7 @@ login (LoginForm userLogin password) = run (DB.login userLogin password) >>= \ca
       log INFO $ "User " <> toText userLogin <> " made login"
       Utils.generateTokens >>= run . ($ user) . DB.issueToken exprDate rights
 
-type RefreshAPI = "refresh" :> Get AuthPayload
+type RefreshAPI = "auth" :> "refresh" :> Get AuthPayload
 
 refresh :: AuthenticatedApp '[User] AuthPayload
 refresh = do

@@ -6,6 +6,7 @@
 {-# LANGUAGE TypeFamilies      #-}
 {-# LANGUAGE TypeOperators     #-}
 {-# LANGUAGE ViewPatterns      #-}
+{-# LANGUAGE LambdaCase #-}
 module Utils where
 
 import Control.Lens           (Iso', iso)
@@ -28,6 +29,12 @@ import Infrastructure
 import Types.Auth     (AccessToken)
 import Types.Users    (Hash, Password)
 import Types.Utils    (CurrentTime)
+
+infixl 1 ?>>=
+(?>>=) :: Monad m => m (Maybe a) -> (a -> m b) -> m (Maybe b)
+m ?>>= f = m >>= \case
+  Nothing -> return Nothing
+  Just a  -> f a <&> Just
 
 infixl 1 =>>
 (=>>) :: Monad m => m a -> (a -> m b) -> m a

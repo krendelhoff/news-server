@@ -21,18 +21,20 @@ class (CanReject m, Monad m) => AcquireCategory m where
   getRecursive :: ID -> m (Maybe PayloadRecursive)
 
 class AcquireCategory m => PersistCategory m where
+  rootID :: m ID
   create :: Title -> Maybe ID -> m (Maybe Payload)
-  remove :: ID -> m NoContent
+  remove :: ID -> m ()
   rename :: ID -> Title -> m (Maybe Payload)
   rebase :: ID -> ID -> m (Maybe Payload)
 
-instance (Elem rights 'User ~ 'True
+instance (
           ) => AcquireCategory (AuthenticatedApp rights) where
    get = run . DB.get
    getRecursive = run . DB.getRecursive
 
-instance (Elem rights 'User ~ 'True
+instance (Elem rights 'Admin ~ 'True
           ) => PersistCategory (AuthenticatedApp rights) where
+  rootID = run DB.rootID
   create = (run .) . DB.create
   remove = run . DB.remove
   rename = (run .) . DB.rename

@@ -1,3 +1,3 @@
-curl "localhost:7980/categories/73565a6a-3162-42b7-a3a9-a44c40281dc5" \
+curl "localhost:7980/categories/368522cd-8cd2-4882-9428-663663ea436e" \
   -X DELETE \
-  -H "Authorization: Bearer 4ee0148eaa17d46c6158c215c346f3502f4789ea994f22fa5939fb1aae198af2"
+  -H "Authorization: Bearer 07cfd94cae21f2ad46307c6062074ea28b87e17e559b4c2f48682094ffd16b2a"

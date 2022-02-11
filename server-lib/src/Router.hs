@@ -67,11 +67,6 @@ type family IsThere (endpoint :: Type) (api :: Type) :: Constraint where
 class FromAuth a where
   fromRawAuth :: RawAuthData -> a
 
--- TODO
--- integration tests
--- more beautiful unit tests
--- one more endpoint delete user
-
 class HasServer layout where
   type ServerT (layout :: Type) (m :: Type -> Type) :: Type
   route  :: Server layout -> RoutingEnv -> Maybe (Handler Response)
@@ -215,37 +210,24 @@ instance (FromHttpApiData a, HasServer r, KnownSymbol id
     walk @r (req & path .~ xs) <&> first (RawCapt (symbolVal (Proxy @id)) (Proxy @a) x :)
   walk _ = Nothing
 
-instance (FromAuth a, HasServer r) => HasServer (Auth Protected a :> r) where
-  type ServerT (Auth Protected a :> r) m = AuthResult a -> ServerT r m
+instance (FromAuth a, HasServer r, KnownProtection protection
+          ) => HasServer (Auth protection a :> r) where
+  type ServerT (Auth protection a :> r) m = AuthResult a -> ServerT r m
   route :: (AuthResult a -> Server r) -> RoutingEnv -> Maybe (Handler Response)
-  route handlerF req@(lookup "Authorization" . view headers -> Just rawToken) =
-    case _extractToken (req^.handle) rawToken of
-      Nothing    -> route @r (handlerF $ fromRawAuth <$> BadToken) req
-      Just token -> do
-        authResult <- Just $ unsafePerformIO $ _authenticate (req^.handle) token
-        route @r (handlerF $ fromRawAuth <$> authResult) req
-  route handlerF req = route @r (handlerF $ fromRawAuth <$> NoToken) req
+  route handlerF req@(view auth -> result) =
+    route @r (handlerF $ fromRawAuth <$> result) req
   unlift :: (forall x. m x -> n x) -> (AuthResult a -> ServerT r m)
                                    -> (AuthResult a -> ServerT r n)
   unlift f g = unlift @r f . g
   walk :: RoutingEnv -> Maybe ([RawRoutePiece], Protection)
-  walk = (second (const Protected) <$>) . walk @r
+  walk = (second (max (protectionVal @protection)) <$>) . walk @r
 
-instance (FromAuth a, HasServer r) => HasServer (Auth Regular a :> r) where
-  type ServerT (Auth Regular a :> r) m = AuthResult a -> ServerT r m
-  route :: (AuthResult a -> Server r) -> RoutingEnv -> Maybe (Handler Response)
-  route handlerF req@(lookup "Authorization" . view headers -> Just rawToken) =
-    case _extractToken (req^.handle) rawToken of
-      Nothing    -> route @r (handlerF $ fromRawAuth <$> BadToken) req
-      Just token -> do
-        authResult <- Just $ unsafePerformIO $ _authenticate (req^.handle) token
-        route @r (handlerF $ fromRawAuth <$> authResult) req
-  route handlerF req = route @r (handlerF $ fromRawAuth <$> NoToken) req
-  unlift :: (forall x. m x -> n x) -> (AuthResult a -> ServerT r m)
-                                   -> (AuthResult a -> ServerT r n)
-  unlift f g = unlift @r f . g
-  walk :: RoutingEnv -> Maybe ([RawRoutePiece], Protection)
-  walk = walk @r
+authorize :: Request -> ServingHandle -> IO (AuthResult RawAuthData)
+authorize (lookup "Authorization" . requestHeaders -> Just rawToken) h =
+  case _extractToken h rawToken of
+    Nothing    -> return BadToken
+    Just token -> _authenticate h token
+authorize _ _ = return NoToken
 
 parseRoute :: [RawRoutePiece] -> Validation [ErrorMessage] [RoutePiece]
 parseRoute =
@@ -275,25 +257,30 @@ serve h s req@(parseMethod . requestMethod -> Right m) respond =
     serveWithMethod :: forall layout. HasServer layout =>
       ServingHandle -> Server layout -> StdMethod -> Application
     serveWithMethod h s m req respond = do
-      bodyStr <- strictRequestBody req
+      bodyStr    <- strictRequestBody req
       let reqInfo = RoutingEnv { _path     = pathInfo req
                                , _method   = m
                                , _queryStr = queryString req
                                , _headers  = requestHeaders req
                                , _body     = bodyStr
                                , _handle   = h
-                               , _racc     = []
+                               , _auth     = NoToken
                                }
       case walk @layout reqInfo of
         Nothing       -> respond $ toResponse err404
         Just rawRacc  -> serveAfterWalk @layout s reqInfo rawRacc req respond
     serveAfterWalk :: forall layout. HasServer layout =>
       Server layout -> RoutingEnv -> ([RawRoutePiece], Protection) -> Application
-    serveAfterWalk s env (rawRoutePieceList, protection) req respond =
-      case (parseRoute rawRoutePieceList, protection) of
-        (Failure errs, Regular  ) -> respond $ toResponse (mkError status400 errs)
-        (Failure errs, Protected) -> respond $ toResponse err404
-        (Success _, _           ) -> serveWithRoute @layout s env req respond
+    serveAfterWalk s env (parseRoute -> Failure errs, Protected) req respond = do
+      authorize req (env^.handle) >>= respond . toResponse . flip handleErrs errs
+    serveAfterWalk s env (parseRoute -> Failure errs, Regular) req respond =
+      respond $ toResponse (mkError status400 errs)
+    serveAfterWalk s env _ req respond = do
+      authResult <- authorize req (env^.handle)
+      serveWithRoute @layout s (env & auth .~ authResult) req respond
+    handleErrs :: AuthResult RawAuthData -> [ErrorMessage] -> ServerError
+    handleErrs (AuthSuccess (RawAuthData _ _ _ True Access)) errs = mkError status400 errs
+    handleErrs _ _                  = err404
     serveWithRoute :: forall layout. HasServer layout =>
       Server layout -> RoutingEnv -> Application
     serveWithRoute s env req respond =
