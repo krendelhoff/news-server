@@ -1,18 +1,27 @@
 {-# LANGUAGE BlockArguments    #-}
 {-# LANGUAGE OverloadedStrings #-}
-module Test.User.Users (spec_users) where
+module Test.User.Users (spec) where
 
-import Universum hiding (get)
+import Universum hiding (get, Handle)
 import Test.Tasty.Hspec
 
-import Effects.Users
 import Test.MonadStack
 
-spec_users :: Spec
-spec_users = describe "Users API" do
+import Server.User.Users
+
+import Test.Effects.Users
+
+spec :: Spec
+spec = describe "Users User API" do
   spec_get
+
+case1 :: Handle PureMonad
+case1 = Handle { tget     = return payload
+               , tgetById = stub
+               , tdelete  = stub
+               }
 
 spec_get :: Spec
 spec_get = describe "get method" do
-    it "have to get the best test user payload" do
-      runPure get `shouldBe` Right userPayload
+  it "have to get the authenticated user payload" do
+    runPureReader case1 get `shouldBe` Right payload

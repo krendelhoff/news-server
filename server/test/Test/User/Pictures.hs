@@ -1,18 +1,22 @@
 {-# LANGUAGE BlockArguments    #-}
 {-# LANGUAGE OverloadedStrings #-}
-module Test.User.Pictures (spec_pictures) where
+module Test.User.Pictures (spec) where
 
-import Universum hiding (get)
+import Universum hiding (Handle, get)
 import Test.Tasty.Hspec
 
-import Effects.Pictures
 import Test.MonadStack
+import Test.Effects.Pictures
+import Server.User.Pictures
 
-spec_pictures :: Spec
-spec_pictures = describe "Pictures API" do
+spec :: Spec
+spec = describe "Pictures API" do
   spec_get
+
+case1 :: Handle PureMonad
+case1 = Handle { tpersist = const (return testId) }
 
 spec_get :: Spec
 spec_get = describe "get method" do
-    it "have to return generated UUID of the uploaded picture" do
-      runPure (persist "*big floppa picture*") `shouldBe` Right pictureId
+  it "Have to return generated UUID of the uploaded picture" do
+    runPureReader case1 (persist "*big floppa picture*") `shouldBe` Right payload

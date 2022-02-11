@@ -38,8 +38,3 @@ instance (Elem rights 'Admin ~ 'True
     get mAid ?>>= run . flip DB.updateUnsafe desc . view userId
   promote mUid desc =
     getById mUid ?>>= run . flip DB.promoteUnsafe desc . view userId
-
--- TODO
--- more beautiful unit tests
--- readme
--- FINISHED

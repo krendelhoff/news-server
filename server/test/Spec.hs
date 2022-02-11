@@ -6,27 +6,29 @@ import Test.Tasty.Hspec
 import Universum
 
 import Test.Utils
-import Test.User.Categories
-import Test.User.Pictures
-import Test.User.Users
-import Test.Admin.Categories
-import Test.Admin.Authors
+
+import qualified Test.User.Categories as User.Categories
+import qualified Test.User.Pictures as User.Pictures
+import qualified Test.User.Users as User.Users
+import qualified Test.Admin.Categories as Admin.Categories
+import qualified Test.Admin.Authors as Admin.Authors
+import qualified Test.Admin.Users as Admin.Users
 
 
+spec :: Spec
 spec = do
-  spec_authors
-  spec_admin_categories
-  spec_user_categories
-  spec_users
-  spec_pictures
+  Admin.Authors.spec
+  Admin.Categories.spec
+  Admin.Users.spec
+  User.Categories.spec
+  User.Users.spec
+  User.Pictures.spec
 
 main :: IO ()
 main = do
-  utils <- testSpecs spec_utils
+  utils   <- testSpecs spec_utils
   apiSpec <- testSpecs spec
-  --users <- testSpecs spec_create
   defaultMain $
-    testGroup "All tests" [-- testGroup "Database/Users" users
-                            testGroup "Common utils" utils
+    testGroup "All tests" [ testGroup "Common utils" utils
                           , testGroup "API" apiSpec
                           ]

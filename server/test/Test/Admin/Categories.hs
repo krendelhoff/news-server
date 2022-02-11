@@ -1,105 +1,185 @@
 {-# LANGUAGE BlockArguments       #-}
 {-# LANGUAGE OverloadedStrings    #-}
-{-# OPTIONS_GHC -Wno-deprecations #-}
-module Test.Admin.Categories (spec_admin_categories) where
+module Test.Admin.Categories (spec) where
 
-import Universum hiding (get)
+import Universum hiding (Handle, get)
 import Test.Tasty.Hspec
 
-import Effects.Categories
-import Types.Router
+import Server.Admin.Categories
 import Server.Errors
+import Types.Router
 import Test.MonadStack
-import Server.Admin.Categories (update)
+import Test.Effects.Categories
 
-spec_admin_categories :: Spec
-spec_admin_categories = describe "Categories Admin API" do
+spec :: Spec
+spec = describe "Categories Admin API" do
   spec_create
   spec_remove
-  spec_rename
-  spec_rebase
   spec_update
 
+case1 :: Handle PureMonad
+case1 = Handle { tget          = stub
+               , tgetRecursive = stub
+               , tcreate       = const (const (return Nothing))
+               , tremove       = stub
+               , trename       = stub
+               , trebase       = stub
+               , trootID       = stub
+               }
+
+case2 :: Handle PureMonad
+case2 = Handle { tget          = stub
+               , tgetRecursive = stub
+               , tcreate       = const (const (return $ Just payload))
+               , tremove       = stub
+               , trename       = stub
+               , trebase       = stub
+               , trootID       = stub
+               }
 
 spec_create :: Spec
 spec_create = describe "create method" do
-    it "have to create the best test category payload" do
-      runPure (create categoryTitle (Just categoryParent)) `shouldBe` Right (Just categoryPayload)
+  describe "have to create category" do
+    context "when requested title is not unique" do
+      it "throws titleIsNotUniqueError" do
+        runPureReader case1 (create createForm) `shouldBe` Left titleIsNotUnique
+    context "when create form correct" do
+      it "returns created category data" do
+        runPureReader case2 (create createForm) `shouldBe` Right payload
+
+case3 :: Handle PureMonad
+case3 = Handle { tget          = const (return Nothing)
+               , tgetRecursive = stub
+               , tcreate       = stub
+               , tremove       = stub
+               , trename       = stub
+               , trebase       = stub
+               , trootID       = return root
+               }
+
+case4 :: Handle PureMonad
+case4 = Handle { tget          = stub
+               , tgetRecursive = stub
+               , tcreate       = stub
+               , tremove       = stub
+               , trename       = stub
+               , trebase       = stub
+               , trootID       = return root
+               }
+
+case5 :: Handle PureMonad
+case5 = Handle { tget          = const (return $ Just payload)
+               , tgetRecursive = stub
+               , tcreate       = stub
+               , tremove       = const pass
+               , trename       = stub
+               , trebase       = stub
+               , trootID       = return root
+               }
 
 spec_remove :: Spec
 spec_remove = describe "remove method" do
-    it "have to remove the best test category" do
-      runPure (remove categoryId) `shouldBe` Right NoContent
+  describe "have to remove the category" do
+    context "when requested category does not exist" do
+      it "throws categoryNotFoundError" do
+        runPureReader case3 (remove testId) `shouldBe` Left categoryNotFoundError
+    context "when tries to remove root category" do
+      it "throws cantRemoveRootError" do
+        runPureReader case4 (remove root) `shouldBe` Left cantRemoveRootError
+    context "otherwise" do
+      it "removes successfully" do
+        runPureReader case5 (remove testId) `shouldBe` Right NoContent
 
-spec_rename :: Spec
-spec_rename = describe "rename method" do
-    it "have to rename the best test category" do
-      runPure (rename categoryId categoryTitle) `shouldBe` Right (Just categoryPayload)
+case6 :: Handle PureMonad
+case6 = Handle { tget          = const (return Nothing)
+               , tgetRecursive = stub
+               , tcreate       = stub
+               , tremove       = stub
+               , trename       = stub
+               , trebase       = stub
+               , trootID       = stub
+               }
 
-spec_rebase :: Spec
-spec_rebase = describe "rebase method" do
-    it "have to rebase the best test category" do
-      runPure (rebase categoryId categoryParent) `shouldBe` Right (Just categoryPayload)
+case7 :: Handle PureMonad
+case7 = Handle { tget          = const (return $ Just payload)
+               , tgetRecursive = stub
+               , tcreate       = stub
+               , tremove       = stub
+               , trename       = stub
+               , trebase       = stub
+               , trootID       = stub
+               }
 
-handleForCategoryNotFoundError = TestHandle
-  { tget = const (pure Nothing)
-  , tgetRecursive = undefined
-  , tcreate = undefined
-  , tremove = undefined
-  , trename = undefined
-  , trebase = undefined
+case8 :: Handle PureMonad
+case8 = Handle
+  { tget          = \x -> if x == testId then pure (Just payload)
+                          else pure Nothing
+  , tgetRecursive = stub
+  , tcreate       = stub
+  , tremove       = stub
+  , trename       = stub
+  , trebase       = stub
+  , trootID       = stub
   }
-handleForRebaseDestinationNotExist = TestHandle
-  { tget = \x -> if x == categoryId then pure (Just categoryPayload) else pure Nothing
-  , tgetRecursive = error "tgetRec"
-  , tcreate = error "tcreate"
-  , tremove = error "tremove"
-  , trename = error "trename"
-  , trebase = error "trebase"
+
+case9 :: Handle PureMonad
+case9 = Handle
+  { tget          = \x -> if x == testId then pure (Just payload)
+                          else pure (Just parentPayload)
+  , tgetRecursive = stub
+  , tcreate       = stub
+  , tremove       = stub
+  , trename       = stub
+  , trebase       = const (const (pure Nothing))
+  , trootID       = stub
   }
-handleForIncorrentRebaseDestination = TestHandle
-  { tget = \x -> if x == categoryId then pure (Just categoryPayload) else pure (Just parentCategoryPayload)
-  , tgetRecursive = undefined
-  , tcreate = undefined
-  , tremove = undefined
-  , trename = undefined
-  , trebase = const (const (pure Nothing))
+
+case10 :: Handle PureMonad
+case10 = Handle
+  { tget          = const $ pure (Just payload)
+  , tgetRecursive = stub
+  , tcreate       = stub
+  , tremove       = stub
+  , trename       = const (const $ pure Nothing)
+  , trebase       = stub
+  , trootID       = stub
   }
-handleForTitleIsNotUnique = TestHandle
-  { tget = const $ pure (Just categoryPayload)
-  , tgetRecursive = undefined
-  , tcreate = undefined
-  , tremove = undefined
-  , trename = const (const $ pure Nothing)
-  , trebase = undefined
-  }
-handleForEverythingCorrect = TestHandle
-  { tget = const $ pure (Just categoryPayload)
-  , tgetRecursive = undefined
-  , tcreate = undefined
-  , tremove = undefined
-  , trename = const (const $ pure (Just categoryPayload))
-  , trebase = const (const $ pure (Just categoryPayload))
+
+case11 :: Handle PureMonad
+case11 = Handle
+  { tget          = const $ pure (Just payload)
+  , tgetRecursive = stub
+  , tcreate       = stub
+  , tremove       = stub
+  , trename       = const (const $ pure (Just payload))
+  , trebase       = const (const $ pure (Just payload))
+  , trootID       = stub
   }
 
 spec_update :: Spec
 spec_update = describe "update method" do
-  describe "have to always do it successfully or return various kinds of errors" do
-    context "when there isn't category with given ID" do
-      it "returns categoryNotFoundError" do
-        runPureReader handleForCategoryNotFoundError (update categoryId Nothing Nothing) `shouldBe` Left categoryNotFoundError
+  describe "update category title or change the parent" do
+    context "when requested category does not exist" do
+      it "throws categoryNotFoundError" do
+        runPureReader case6 (update testId Nothing Nothing)
+          `shouldBe` Left categoryNotFoundError
     context "when nothing to update" do
       it "returns the same payload" do
-        runPure (update categoryId Nothing Nothing) `shouldBe` Right categoryPayload
+        runPureReader case7 (update testId Nothing Nothing)
+          `shouldBe` Right payload
     context "when rebase destination does not exist" do
       it "returns rebaseDestinationNotExist" do
-        runPureReader handleForRebaseDestinationNotExist (update categoryId Nothing (Just categoryParent)) `shouldBe` Left rebaseDestinationNotExist
-    context "when rebase destination incorrent (forms a cycle)" do
+        runPureReader case8 (update testId Nothing (Just testParentId))
+          `shouldBe` Left rebaseDestinationNotExist
+    context "when rebase destination incorrect (forms a cycle)" do
       it "returns incorrectRebaseDestination" do
-        runPureReader handleForIncorrentRebaseDestination (update categoryId Nothing (Just categoryParent)) `shouldBe` Left incorrectRebaseDestination
+        runPureReader case9 (update testId Nothing (Just testParentId))
+          `shouldBe` Left incorrectRebaseDestination
     context "when new name is not unique" do
       it "returns titleIsNotUnique" do
-        runPureReader handleForTitleIsNotUnique (update categoryId (Just categoryTitle) Nothing) `shouldBe` Left titleIsNotUnique
+        runPureReader case10 (update testId (Just title) Nothing)
+          `shouldBe` Left titleIsNotUnique
     context "when input data is correct" do
       it "successfully updates category and returns payload" do
-        runPureReader handleForEverythingCorrect (update categoryId (Just categoryTitle) (Just parentCategoryId)) `shouldBe` Right categoryPayload
+        runPureReader case11 (update testId (Just title) (Just testParentId))
+          `shouldBe` Right payload

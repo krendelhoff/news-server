@@ -172,8 +172,13 @@ test-suite server-test
   other-modules:
       Test.Admin.Authors
       Test.Admin.Categories
+      Test.Admin.Users
       Test.Database
       Test.Database.Users
+      Test.Effects.Authors
+      Test.Effects.Categories
+      Test.Effects.Pictures
+      Test.Effects.Users
       Test.MonadStack
       Test.User.Categories
       Test.User.Pictures

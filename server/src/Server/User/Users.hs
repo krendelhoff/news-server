@@ -10,7 +10,7 @@ import Effects
 import Types.Auth
 import Types.Environment
 import Infrastructure
-import Types.Users         (CreateForm(CreateForm), Payload)
+import Types.Users         (Payload)
 
 import qualified Effects.Users as Users
 
