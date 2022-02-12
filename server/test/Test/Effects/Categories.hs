@@ -8,8 +8,6 @@ import Types.Categories hiding (title)
 import Effects.Categories
 import Test.MonadStack
 
-import qualified Data.ByteString.Lazy as BL
-
 testId :: ID
 testId = toID "422a04c2-c62f-4192-9ac0-c4141e0d9e73"
 
@@ -20,8 +18,7 @@ payload :: Payload
 payload = Payload testId title (Just testParentId)
 
 recursivePayload :: PayloadRecursive
-recursivePayload = PayloadRecursive testId title
- (Just $ PayloadRecursive testParentId parentTitle Nothing)
+recursivePayload = PayloadRecursive testId titl
 
 testParentId :: ID
 testParentId = toID "8a2aa26e-17fc-4b37-a8ef-60b50fa25306"

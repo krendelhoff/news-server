@@ -12,7 +12,6 @@ import Effects.Users
 
 import qualified Test.Effects.Users   as Users
 import qualified Types.Users          as Users
-import qualified Data.ByteString.Lazy as BL
 
 testId :: ID
 testId = toID "91a1a6d8-d7ad-4258-86c1-05c6ea2387ab"

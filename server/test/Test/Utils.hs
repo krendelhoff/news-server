@@ -6,7 +6,6 @@ import Test.Tasty.Hspec
 import Universum
 
 import Utils
-import Types.Router
 
 spec_utils :: Spec
 spec_utils = spec_extractToken >> spec_combinator
