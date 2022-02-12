@@ -18,7 +18,8 @@ payload :: Payload
 payload = Payload testId title (Just testParentId)
 
 recursivePayload :: PayloadRecursive
-recursivePayload = PayloadRecursive testId titl
+recursivePayload = PayloadRecursive testId title
+  (Just $ PayloadRecursive testParentId parentTitle Nothing)
 
 testParentId :: ID
 testParentId = toID "8a2aa26e-17fc-4b37-a8ef-60b50fa25306"
