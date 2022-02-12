@@ -46,3 +46,5 @@ default-extensions:
 
 library:
   source-dirs: src
+  ghc-options:
+  - -Wunused-imports

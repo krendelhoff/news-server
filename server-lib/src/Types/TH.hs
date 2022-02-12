@@ -10,20 +10,16 @@
 module Types.TH where
 
 import Data.Aeson
-import Data.Char           (toLower, isAlpha)
-import Data.List           (stripPrefix)
+import Data.Aeson.TH       (deriveJSON)
+import Data.Char           (isAlpha)
 import Data.Time
-import Data.Traversable    (for)
 import Data.UUID           hiding (toText)
-import Data.Aeson.TH ( deriveJSON )
 import Deriving.Aeson
 import Language.Haskell.TH
 import Universum           hiding (toText)
 import Web.HttpApiData
 
-import qualified Data.Aeson      as B
-import qualified Data.ByteString as B
-import qualified Data.Text       as T
+import qualified Data.Text as T
 
 import Types.TH.Classes
 
@@ -117,10 +113,10 @@ newBoolType metaName = let name = mkName metaName in
 -- instance FromJSON ByteString where
 --   parseJSON (String s) = return $ encodeUtf8 s
 --   parseJSON _          = fail "Wrong format bytestring!"
--- 
+--
 -- instance ToJSON ByteString where
 --   toJSON = String . decodeUtf8
--- 
+--
 -- newByteaType :: String -> DecsQ
 -- newByteaType metaName = let name = mkName metaName in
 --                          return [NewtypeD [] name [] Nothing

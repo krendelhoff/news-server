@@ -1,36 +1,32 @@
-{-# LANGUAGE AllowAmbiguousTypes   #-}
-{-# LANGUAGE BlockArguments        #-}
-{-# LANGUAGE ConstraintKinds       #-}
-{-# LANGUAGE DataKinds             #-}
-{-# LANGUAGE DerivingVia           #-}
-{-# LANGUAGE FlexibleContexts      #-}
-{-# LANGUAGE FlexibleInstances     #-}
-{-# LANGUAGE GADTs                 #-}
-{-# LANGUAGE InstanceSigs          #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE OverloadedStrings     #-}
-{-# LANGUAGE PolyKinds             #-}
-{-# LANGUAGE RankNTypes            #-}
-{-# LANGUAGE ScopedTypeVariables   #-}
-{-# LANGUAGE TypeApplications      #-}
-{-# LANGUAGE TypeFamilies          #-}
-{-# LANGUAGE TypeOperators         #-}
-{-# LANGUAGE UndecidableInstances  #-}
-{-# LANGUAGE ViewPatterns          #-}
+{-# LANGUAGE AllowAmbiguousTypes    #-}
+{-# LANGUAGE BlockArguments         #-}
+{-# LANGUAGE ConstraintKinds        #-}
+{-# LANGUAGE DataKinds              #-}
+{-# LANGUAGE DerivingVia            #-}
+{-# LANGUAGE FlexibleContexts       #-}
+{-# LANGUAGE FlexibleInstances      #-}
+{-# LANGUAGE GADTs                  #-}
+{-# LANGUAGE InstanceSigs           #-}
+{-# LANGUAGE MultiParamTypeClasses  #-}
+{-# LANGUAGE OverloadedStrings      #-}
+{-# LANGUAGE PolyKinds              #-}
+{-# LANGUAGE RankNTypes             #-}
+{-# LANGUAGE ScopedTypeVariables    #-}
+{-# LANGUAGE TypeApplications       #-}
+{-# LANGUAGE TypeFamilies           #-}
+{-# LANGUAGE TypeOperators          #-}
+{-# LANGUAGE UndecidableInstances   #-}
+{-# LANGUAGE ViewPatterns           #-}
 module Router ( HasServer(..)
               , serve
               , FromAuth(fromRawAuth)
               , Elem
               ) where
 
-import Control.Applicative  (Alternative((<|>)))
-import Control.Monad.Except (MonadError, throwError)
 import Data.Aeson           (FromJSON, ToJSON, decode, encode)
 import Data.List            (lookup)
 import Data.Validation
-import GHC.IO               (unsafePerformIO)
-import GHC.TypeLits         (KnownNat, KnownSymbol, Symbol, natVal, symbolVal)
-import Hasql.Pool           (Pool)
+import GHC.TypeLits         (KnownSymbol, Symbol, natVal, symbolVal)
 import Network.HTTP.Types
 import Network.Wai
 import Universum            hiding (Handle, natVal, state)
@@ -40,7 +36,6 @@ import Errors
 import Types.Router
 import Types.TH     (fromText)
 
-import qualified Data.ByteString      as B
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.Text            as T
 
@@ -77,7 +72,7 @@ createStatus :: forall code. KnownNat code => Status
 createStatus = case natVal (Proxy @code) of
   200 -> status200
   204 -> status204                                     --FIXME|
-  n   -> mkStatus (fromInteger (natVal (Proxy @code))) "Success"
+  n   -> mkStatus (fromInteger n) "Success"
 
 defaultHeaders :: [(HeaderName, ByteString)]
 defaultHeaders = [("Content-type", "application/json; charset=utf-8")]
@@ -94,7 +89,7 @@ instance (KnownMethod t, KnownNat code, ToJSON a
   unlift f = f
   walk :: RoutingEnv -> Maybe ([RawRoutePiece], Protection)
   walk (view path -> p)       | not . null $ p    = Nothing
-  walk req@(view method -> m) | m == methodVal @t = Just ([], Regular)
+  walk (view method -> m) | m == methodVal @t = Just ([], Regular)
   walk _ = Nothing
 
 instance (KnownMethod t, KnownNat code
@@ -249,7 +244,7 @@ parseRoute =
 
 serve :: forall layout. HasServer layout =>
   ServingHandle -> Server layout -> Application
-serve h s req@(parseMethod . requestMethod -> Left err) respond =
+serve _ _ (parseMethod . requestMethod -> Left _) respond =
   respond $ toResponse err400BadMethod
 serve h s req@(parseMethod . requestMethod -> Right m) respond =
   serveWithMethod @layout h s m req respond
@@ -271,9 +266,9 @@ serve h s req@(parseMethod . requestMethod -> Right m) respond =
         Just rawRacc  -> serveAfterWalk @layout s reqInfo rawRacc req respond
     serveAfterWalk :: forall layout. HasServer layout =>
       Server layout -> RoutingEnv -> ([RawRoutePiece], Protection) -> Application
-    serveAfterWalk s env (parseRoute -> Failure errs, Protected) req respond = do
+    serveAfterWalk _ env (parseRoute -> Failure errs, Protected) req respond = do
       authorize req (env^.handle) >>= respond . toResponse . flip handleErrs errs
-    serveAfterWalk s env (parseRoute -> Failure errs, Regular) req respond =
+    serveAfterWalk _ _ (parseRoute -> Failure errs, Regular) _ respond =
       respond $ toResponse (mkError status400 errs)
     serveAfterWalk s env _ req respond = do
       authResult <- authorize req (env^.handle)
@@ -283,7 +278,7 @@ serve h s req@(parseMethod . requestMethod -> Right m) respond =
     handleErrs _ _                  = err404
     serveWithRoute :: forall layout. HasServer layout =>
       Server layout -> RoutingEnv -> Application
-    serveWithRoute s env req respond =
+    serveWithRoute s env _ respond =
       case route @layout s env of
         Nothing -> respond $ toResponse err404
         Just handler -> do

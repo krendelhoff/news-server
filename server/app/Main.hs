@@ -12,7 +12,6 @@ import Network.Wai         (Application)
 import Options.Applicative
 import Universum           hiding (toText)
 
-import qualified Hasql.Pool               as Pool
 import qualified Network.Wai.Handler.Warp as Warp
 
 import Infrastructure

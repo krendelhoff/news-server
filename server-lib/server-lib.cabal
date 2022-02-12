@@ -37,6 +37,7 @@ library
       src
   default-extensions:
       NoImplicitPrelude
+  ghc-options: -Wunused-imports
   build-depends:
       aeson
     , base

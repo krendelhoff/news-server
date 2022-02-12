@@ -13,9 +13,7 @@
 module Types.DB where
 
 import Control.Lens.TH (makeFieldsNoPrefix)
-import Data.Aeson      (FromJSON)
 import Deriving.Aeson.Stock
-import TextShow.TH
 import Universum
 
 import Data.Time (NominalDiffTime)
