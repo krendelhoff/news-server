@@ -1,0 +1,28 @@
+resolver: lts-18.23
+
+packages:
+- server
+- server-lib
+
+extra-deps:
+- hasql-dynamic-statements-0.3.1@sha256:c3a2c89c4a8b3711368dbd33f0ccfe46a493faa7efc2c85d3e354c56a01dfc48,2673
+- hasql-migration-0.3.0@sha256:6ca4cc6c89834bb79eb9f15b504774043b5b3994336bd86a9d79e59da6d54963,2799
+- hasql-th-0.4.0.11@sha256:3d870f4f60dd23b8cb715d965b8278a33a466f0b0e827f065218ae3c08a64409,2246
+- hasql-implicits-0.1.0.2@sha256:5d54e09cb779a209681b139fb3cc726bae75134557932156340cc0a56dd834a8,1361
+- postgresql-syntax-0.4@sha256:df8b65a33f4088eddad25cedbec814e5f34f8e8ae55065139b73bd6da0d66f21,4176
+- ptr-0.16.8.1@sha256:525219ec5f5da5c699725f7efcef91b00a7d44120fc019878b85c09440bf51d6,2686
+- headed-megaparsec-0.2.0.2@sha256:2695b09f0a6208c24f0112fac1b97b392b410ca59db38c6b8a25e175ebf8d661,1571
+- selective-0.5@sha256:dff7715af7cc652f2e695e17674e2b1016ea4f675357291dc78a1f7a3ee5a17f,3470
+
+nix:
+  enable: true
+
+  # using flake + direnv
+  pure: false
+  #shell-file: shell.nix
+
+  packages: [ zlib
+              glibc
+            ]
+
+  add-gc-roots: true
